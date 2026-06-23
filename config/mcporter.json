@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "cloudbase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cloudbase/cloudbase-mcp@latest"
+      ],
+      "description": "Tencent CloudBase MCP",
+      "lifecycle": "keep-alive"
+    }
+  }
+}

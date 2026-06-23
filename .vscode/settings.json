@@ -1,2 +1,5 @@
 {
+  "dart.flutterSdkPath": "apps/mobile/.fvm/flutter_sdk",
+  "dart.lineLength": 80,
+  "editor.formatOnSave": true
 }

@@ -1,0 +1,20 @@
+{
+  "name": "little-hero-auth-register",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Trusted CloudBase username/password registration endpoint",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "tencentcloud-sdk-nodejs-tcb": "^4.1.252"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

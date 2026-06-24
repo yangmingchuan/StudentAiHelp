@@ -125,12 +125,28 @@ async function registerUser(body, { client, env = process.env } = {}) {
       Description: "Little Hero MVP parent account; phone ownership unverified",
     });
 
-    return {
+    const result = {
       uid: response?.Data?.Uid || "",
       username,
       phoneOwnershipVerified: false,
     };
+
+    const profileResult = await initializeDefaultProfileAfterRegistration({
+      authSubject: result.uid,
+      username,
+      env,
+    });
+
+    return {
+      ...result,
+      profileInitialized: profileResult.initialized,
+      profileInitializationSkipped: profileResult.skipped,
+    };
   } catch (error) {
+    if (error instanceof RegistrationError) {
+      throw error;
+    }
+
     const errorCode = error?.code || error?.Code || "";
 
     if (
@@ -157,8 +173,51 @@ async function registerUser(body, { client, env = process.env } = {}) {
   }
 }
 
+async function initializeDefaultProfileAfterRegistration({
+  authSubject,
+  username,
+  env = process.env,
+  fetchImpl = fetch,
+}) {
+  const baseUrl = env.BUSINESS_API_INTERNAL_URL;
+  const internalSecret = env.INTERNAL_API_SECRET;
+
+  if (!baseUrl || !internalSecret || !authSubject) {
+    return { initialized: false, skipped: true };
+  }
+
+  const response = await fetchImpl(
+    `${baseUrl.replace(/\/$/, "")}/internal/parents/default-profile`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Secret": internalSecret,
+      },
+      body: JSON.stringify({
+        authSubject,
+        username,
+        phoneOwnershipVerified: false,
+        privacyPolicyVersion: "mvp-internal",
+        childPrivacyRuleVersion: "mvp-internal",
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new RegistrationError(
+      "PROFILE_INITIALIZATION_FAILED",
+      "账号已创建，但默认孩子档案初始化失败，请联系内测管理员。",
+      502,
+    );
+  }
+
+  return { initialized: true, skipped: false };
+}
+
 module.exports = {
   RegistrationError,
+  initializeDefaultProfileAfterRegistration,
   registerUser,
   validateRegistrationInput,
 };

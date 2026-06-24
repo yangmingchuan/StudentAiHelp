@@ -1,76 +1,114 @@
 import 'package:flutter/material.dart';
 import 'package:little_hero/core/theme/app_theme.dart';
 import 'package:little_hero/core/widgets/page_heading.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:little_hero/features/today_tasks/application/home_controller.dart';
+import 'package:little_hero/features/today_tasks/domain/home_snapshot.dart';
 
-class TodayTasksPage extends StatelessWidget {
+class TodayTasksPage extends ConsumerWidget {
   const TodayTasksPage({super.key});
 
-  static const _tasks = [
-    (Icons.clean_hands_rounded, '自己刷牙', AppColors.blue),
-    (Icons.bed_rounded, '整理床铺', AppColors.green),
-    (Icons.auto_stories_rounded, '阅读绘本', AppColors.coral),
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
-          sliver: SliverList.list(
-            children: const [
-              PageHeading(title: '今天也要加油', subtitle: '完成一个小任务，收获一颗成长星星'),
-              SizedBox(height: 20),
-              _AssetStrip(),
-            ],
-          ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(homeControllerProvider);
+
+    return state.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _ErrorView(
+        message: error.toString(),
+        onRetry: () => ref.read(homeControllerProvider.notifier).refresh(),
+      ),
+      data: (snapshot) => RefreshIndicator(
+        onRefresh: () => ref.read(homeControllerProvider.notifier).refresh(),
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
+              sliver: SliverList.list(
+                children: [
+                  PageHeading(
+                    title: '${snapshot.child.nickname}，今天也要加油',
+                    subtitle: snapshot.isStale
+                        ? '当前显示本地缓存，网络恢复后会自动同步'
+                        : '完成一个小任务，收获一颗成长星星',
+                  ),
+                  const SizedBox(height: 20),
+                  _AssetStrip(assets: snapshot.assets),
+                  if (snapshot.isSyncing || snapshot.message != null) ...[
+                    const SizedBox(height: 12),
+                    _SyncNotice(
+                      text: snapshot.isSyncing
+                          ? '正在同步今天的变化'
+                          : snapshot.message!,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+              sliver: SliverList.separated(
+                itemCount: snapshot.tasks.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final task = snapshot.tasks[index];
+                  return _TaskTile(
+                    task: task,
+                    color: _taskColor(index),
+                    onDone: () => ref
+                        .read(homeControllerProvider.notifier)
+                        .setTaskStatus(task.id, TaskStatus.done),
+                    onSkipped: () => ref
+                        .read(homeControllerProvider.notifier)
+                        .setTaskStatus(task.id, TaskStatus.skipped),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
-          sliver: SliverList.separated(
-            itemCount: _tasks.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final task = _tasks[index];
-              return _TaskTile(icon: task.$1, title: task.$2, color: task.$3);
-            },
-          ),
-        ),
-      ],
+      ),
     );
+  }
+
+  Color _taskColor(int index) {
+    const colors = [AppColors.blue, AppColors.green, AppColors.coral];
+    return colors[index % colors.length];
   }
 }
 
 class _AssetStrip extends StatelessWidget {
-  const _AssetStrip();
+  const _AssetStrip({required this.assets});
+
+  final AssetSummary assets;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
+      children: [
         Expanded(
           child: _AssetChip(
             icon: Icons.star_rounded,
             label: '星星',
-            value: '0',
+            value: assets.availableStars.toString(),
             color: AppColors.orange,
           ),
         ),
-        SizedBox(width: 10),
+        const SizedBox(width: 10),
         Expanded(
           child: _AssetChip(
             icon: Icons.workspace_premium_rounded,
             label: '勋章',
-            value: '0',
+            value: assets.badgeCount.toString(),
             color: AppColors.green,
           ),
         ),
-        SizedBox(width: 10),
+        const SizedBox(width: 10),
         Expanded(
           child: _AssetChip(
             icon: Icons.favorite_rounded,
             label: '心心',
-            value: '10',
+            value: '${assets.heartsRemaining}/${assets.heartsLimit}',
             color: AppColors.coral,
           ),
         ),
@@ -124,14 +162,16 @@ class _AssetChip extends StatelessWidget {
 
 class _TaskTile extends StatelessWidget {
   const _TaskTile({
-    required this.icon,
-    required this.title,
+    required this.task,
     required this.color,
+    required this.onDone,
+    required this.onSkipped,
   });
 
-  final IconData icon;
-  final String title;
+  final TaskSummary task;
   final Color color;
+  final VoidCallback onDone;
+  final VoidCallback onSkipped;
 
   @override
   Widget build(BuildContext context) {
@@ -148,24 +188,104 @@ class _TaskTile extends StatelessWidget {
               child: SizedBox(
                 width: 48,
                 height: 48,
-                child: Icon(icon, color: color, size: 28),
+                child: Icon(_iconFor(task.iconName), color: color, size: 28),
               ),
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+              child: Text(
+                task.name,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
             ),
             IconButton.filledTonal(
-              tooltip: '完成',
-              onPressed: () {},
-              icon: const Icon(Icons.check_rounded),
+              tooltip: task.isDone ? '撤销完成' : '完成',
+              onPressed: onDone,
+              style: IconButton.styleFrom(
+                backgroundColor: task.isDone
+                    ? AppColors.green.withValues(alpha: 0.24)
+                    : null,
+              ),
+              icon: Icon(
+                task.isDone
+                    ? Icons.check_circle_rounded
+                    : Icons.check_rounded,
+              ),
             ),
             const SizedBox(width: 6),
             IconButton.outlined(
-              tooltip: '跳过',
-              onPressed: () {},
-              icon: const Icon(Icons.remove_rounded),
+              tooltip: task.isSkipped ? '撤销跳过' : '跳过',
+              onPressed: onSkipped,
+              style: IconButton.styleFrom(
+                foregroundColor: task.isSkipped ? AppColors.coral : null,
+              ),
+              icon: Icon(
+                task.isSkipped
+                    ? Icons.remove_circle_rounded
+                    : Icons.remove_rounded,
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _iconFor(String iconName) {
+    return switch (iconName) {
+      'clean_hands_rounded' => Icons.clean_hands_rounded,
+      'bed_rounded' => Icons.bed_rounded,
+      'auto_stories_rounded' => Icons.auto_stories_rounded,
+      _ => Icons.task_alt_rounded,
+    };
+  }
+}
+
+class _SyncNotice extends StatelessWidget {
+  const _SyncNotice({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.blue.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: AppColors.ink,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_rounded, size: 48),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: onRetry, child: const Text('重试')),
           ],
         ),
       ),

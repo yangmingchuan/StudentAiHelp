@@ -9,6 +9,7 @@ import 'package:little_hero/features/child_profile/presentation/profile_page.dar
 import 'package:little_hero/features/english_placeholder/presentation/english_placeholder_page.dart';
 import 'package:little_hero/features/math_placeholder/presentation/math_placeholder_page.dart';
 import 'package:little_hero/features/today_tasks/presentation/today_tasks_page.dart';
+import 'package:little_hero/features/todos/presentation/todo_management_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authControllerProvider);
@@ -77,6 +78,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/profile',
                 builder: (context, state) => const ProfilePage(),
+                routes: [
+                  GoRoute(
+                    path: 'todos',
+                    builder: (context, state) => const TodoManagementPage(),
+                  ),
+                ],
               ),
             ],
           ),

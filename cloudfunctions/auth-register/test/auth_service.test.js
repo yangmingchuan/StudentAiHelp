@@ -4,6 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   RegistrationError,
+  initializeDefaultProfileAfterRegistration,
   registerUser,
   validateRegistrationInput,
 } = require("../auth_service");
@@ -61,4 +62,34 @@ test("creates an internal active CloudBase user", async () => {
   assert.equal(request.UserStatus, "ACTIVE");
   assert.equal(result.uid, "user-1");
   assert.equal(result.phoneOwnershipVerified, false);
+  assert.equal(result.profileInitialized, false);
+  assert.equal(result.profileInitializationSkipped, true);
+});
+
+test("initializes default profile when business API is configured", async () => {
+  let request;
+  const result = await initializeDefaultProfileAfterRegistration({
+    authSubject: "user-1",
+    username: "13800138000",
+    env: {
+      BUSINESS_API_INTERNAL_URL: "https://example.com/api",
+      INTERNAL_API_SECRET: "secret",
+    },
+    fetchImpl: async (url, options) => {
+      request = { url, options };
+      return { ok: true };
+    },
+  });
+
+  assert.equal(result.initialized, true);
+  assert.equal(result.skipped, false);
+  assert.equal(
+    request.url,
+    "https://example.com/api/internal/parents/default-profile",
+  );
+  assert.equal(request.options.headers["X-Internal-Secret"], "secret");
+  assert.equal(
+    JSON.parse(request.options.body).phoneOwnershipVerified,
+    false,
+  );
 });

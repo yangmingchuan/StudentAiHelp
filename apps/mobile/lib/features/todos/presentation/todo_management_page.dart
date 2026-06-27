@@ -48,34 +48,33 @@ class _TodoList extends ConsumerWidget {
       );
     }
 
-    return ReorderableListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 96),
-      buildDefaultDragHandles: false,
-      itemCount: tasks.length + 1,
-      onReorderItem: (oldIndex, newIndex) {
-        if (oldIndex == 0 || newIndex == 0) {
-          return;
-        }
-        ref
-            .read(homeControllerProvider.notifier)
-            .moveTask(oldIndex - 1, newIndex - 1);
-      },
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return const Padding(
-            key: ValueKey('todo-heading'),
-            padding: EdgeInsets.only(bottom: 18),
-            child: PageHeading(title: 'Todo', subtitle: '管理首页展示的任务'),
-          );
-        }
-
-        final task = tasks[index - 1];
-        return Padding(
-          key: ValueKey(task.id),
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _TodoTile(task: task, index: index),
-        );
-      },
+    return Column(
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 22, 20, 18),
+          child: PageHeading(title: 'Todo', subtitle: '管理首页展示的任务'),
+        ),
+        Expanded(
+          child: ReorderableListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+            buildDefaultDragHandles: false,
+            itemCount: tasks.length,
+            onReorderItem: (oldIndex, newIndex) {
+              ref
+                  .read(homeControllerProvider.notifier)
+                  .moveTask(oldIndex, newIndex);
+            },
+            itemBuilder: (context, index) {
+              final task = tasks[index];
+              return Padding(
+                key: ValueKey(task.id),
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _TodoTile(task: task, index: index),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -178,37 +177,19 @@ Future<void> _showTodoDialog(
   WidgetRef ref, {
   TaskSummary? task,
 }) async {
-  final titleController = TextEditingController(text: task?.name ?? '');
-
   final result = await showDialog<_TodoFormResult>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(task == null ? '新增任务' : '编辑任务'),
-      content: TextField(
-        controller: titleController,
-        autofocus: true,
-        maxLength: 14,
-        decoration: const InputDecoration(labelText: '任务名称'),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(
-            context,
-            _TodoFormResult(titleController.text),
-          ),
-          child: const Text('保存'),
-        ),
-      ],
+    builder: (context) => _TodoFormDialog(
+      initialTitle: task?.name ?? '',
+      isEditing: task != null,
     ),
   );
 
-  titleController.dispose();
-
   if (result == null) {
+    return;
+  }
+  await Future<void>.delayed(Duration.zero);
+  if (!context.mounted) {
     return;
   }
 
@@ -269,4 +250,59 @@ class _TodoFormResult {
   const _TodoFormResult(this.title);
 
   final String title;
+}
+
+class _TodoFormDialog extends StatefulWidget {
+  const _TodoFormDialog({
+    required this.initialTitle,
+    required this.isEditing,
+  });
+
+  final String initialTitle;
+  final bool isEditing;
+
+  @override
+  State<_TodoFormDialog> createState() => _TodoFormDialogState();
+}
+
+class _TodoFormDialogState extends State<_TodoFormDialog> {
+  late final TextEditingController _titleController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.initialTitle);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.isEditing ? '编辑任务' : '新增任务'),
+      content: TextField(
+        controller: _titleController,
+        autofocus: true,
+        maxLength: 14,
+        decoration: const InputDecoration(labelText: '任务名称'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(
+            context,
+            _TodoFormResult(_titleController.text),
+          ),
+          child: const Text('保存'),
+        ),
+      ],
+    );
+  }
 }

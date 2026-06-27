@@ -120,7 +120,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             leading: const Icon(Icons.checklist_rtl_rounded),
             title: const Text('Todo 管理'),
             trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => context.push('/profile/todos'),
+            onTap: () => context.push('/todos'),
           ),
         ),
         if (_parentAreaVisible) ...[

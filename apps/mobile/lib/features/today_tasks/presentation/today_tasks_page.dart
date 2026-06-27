@@ -58,9 +58,9 @@ class TodayTasksPage extends ConsumerWidget {
                     onDone: () => ref
                         .read(homeControllerProvider.notifier)
                         .setTaskStatus(task.id, TaskStatus.done),
-                    onSkipped: () => ref
+                    onClear: () => ref
                         .read(homeControllerProvider.notifier)
-                        .setTaskStatus(task.id, TaskStatus.skipped),
+                        .clearTaskStatus(task.id),
                   );
                 },
               ),
@@ -165,13 +165,13 @@ class _TaskTile extends StatelessWidget {
     required this.task,
     required this.color,
     required this.onDone,
-    required this.onSkipped,
+    required this.onClear,
   });
 
   final TaskSummary task;
   final Color color;
   final VoidCallback onDone;
-  final VoidCallback onSkipped;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -199,7 +199,7 @@ class _TaskTile extends StatelessWidget {
               ),
             ),
             IconButton.filledTonal(
-              tooltip: task.isDone ? '撤销完成' : '完成',
+              tooltip: '完成',
               onPressed: onDone,
               style: IconButton.styleFrom(
                 backgroundColor: task.isDone
@@ -214,16 +214,12 @@ class _TaskTile extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             IconButton.outlined(
-              tooltip: task.isSkipped ? '撤销跳过' : '跳过',
-              onPressed: onSkipped,
+              tooltip: '清空',
+              onPressed: task.status == TaskStatus.none ? null : onClear,
               style: IconButton.styleFrom(
-                foregroundColor: task.isSkipped ? AppColors.coral : null,
+                foregroundColor: AppColors.coral,
               ),
-              icon: Icon(
-                task.isSkipped
-                    ? Icons.remove_circle_rounded
-                    : Icons.remove_rounded,
-              ),
+              icon: const Icon(Icons.refresh_rounded),
             ),
           ],
         ),

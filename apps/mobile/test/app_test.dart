@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:little_hero/app/app.dart';
@@ -20,33 +21,54 @@ class _SignedInAuthController extends AuthController {
 }
 
 class _TestHomeController extends HomeController {
+  var _tasks = const [
+    TaskSummary(
+      id: 101,
+      name: '自己刷牙',
+      iconName: 'clean_hands_rounded',
+      sortOrder: 10,
+      status: TaskStatus.none,
+    ),
+  ];
+
   @override
   Future<HomeSnapshot> build() async {
-    return const HomeSnapshot(
-      child: ChildSummary(
+    return _snapshot();
+  }
+
+  @override
+  Future<void> addTask(String name) async {
+    _tasks = [
+      ..._tasks,
+      TaskSummary(
+        id: 202,
+        name: name.trim(),
+        iconName: 'task_alt_rounded',
+        sortOrder: 20,
+        status: TaskStatus.none,
+      ),
+    ];
+    state = AsyncData(_snapshot());
+  }
+
+  HomeSnapshot _snapshot() {
+    return HomeSnapshot(
+      child: const ChildSummary(
         id: 1,
         nickname: '小勇士',
         avatarIcon: 'face_rounded',
         avatarColor: 'green',
         needsProfileSetup: true,
       ),
-      assets: AssetSummary(
+      assets: const AssetSummary(
         availableStars: 0,
         lifetimeStars: 0,
         badgeCount: 0,
         heartsRemaining: 10,
         heartsLimit: 10,
       ),
-      tasks: [
-        TaskSummary(
-          id: 101,
-          name: '自己刷牙',
-          iconName: 'clean_hands_rounded',
-          sortOrder: 10,
-          status: TaskStatus.none,
-        ),
-      ],
-      badges: BadgeSummary(earnedCount: 0, totalCount: 3),
+      tasks: _tasks,
+      badges: const BadgeSummary(earnedCount: 0, totalCount: 3),
       isStale: false,
       isSyncing: false,
     );
@@ -69,6 +91,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('小勇士，今天也要加油'), findsOneWidget);
+    expect(find.byTooltip('完成'), findsOneWidget);
+    expect(find.byTooltip('清空'), findsOneWidget);
+    expect(find.byTooltip('跳过'), findsNothing);
     expect(find.text('任务'), findsOneWidget);
     expect(find.text('数学'), findsOneWidget);
     expect(find.text('英语'), findsOneWidget);
@@ -92,5 +117,16 @@ void main() {
     await tester.tap(find.text('Todo 管理'));
     await tester.pumpAndSettle();
     expect(find.text('自己刷牙'), findsOneWidget);
+    expect(find.text('任务'), findsNothing);
+    expect(find.text('数学'), findsNothing);
+    expect(find.text('英语'), findsNothing);
+    expect(find.text('我的'), findsNothing);
+
+    await tester.tap(find.byTooltip('新增 Todo'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '喝牛奶');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    expect(find.text('喝牛奶'), findsOneWidget);
   });
 }

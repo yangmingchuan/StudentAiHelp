@@ -28,6 +28,16 @@ class HomeController extends AsyncNotifier<HomeSnapshot> {
     }
   }
 
+  Future<void> clearTaskStatus(int taskId) async {
+    final previous = state;
+    state = await AsyncValue.guard(
+      () => _repository.setTaskStatus(taskId: taskId, nextStatus: TaskStatus.none),
+    );
+    if (state.hasError && previous.hasValue) {
+      state = previous;
+    }
+  }
+
   Future<void> addTask(String name) async {
     state = await AsyncValue.guard(() => _repository.addTask(name: name));
   }

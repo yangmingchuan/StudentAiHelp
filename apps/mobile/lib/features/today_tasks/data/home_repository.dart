@@ -73,8 +73,8 @@ class HomeRepository {
         shouldExist: newFull,
       );
 
-      final hasSevenDayStreak = newFull &&
-          await _hasFullCompletionStreak(child.id, today, days: 7);
+      final hasSevenDayStreak =
+          newFull && await _hasFullCompletionStreak(child.id, today, days: 7);
       await _applyDailyAward(
         childId: child.id,
         date: today,
@@ -115,15 +115,15 @@ class HomeRepository {
         throw StateError('最多只能保留 10 个任务');
       }
       final id = DateTime.now().microsecondsSinceEpoch;
-      await _db.into(_db.localHabits).insert(
+      await _db
+          .into(_db.localHabits)
+          .insert(
             LocalHabitsCompanion.insert(
               id: Value(id),
               childId: child.id,
               name: trimmed,
               iconName: const Value('task_alt_rounded'),
-              sortOrder: Value(
-                tasks.isEmpty ? 10 : tasks.last.sortOrder + 10,
-              ),
+              sortOrder: Value(tasks.isEmpty ? 10 : tasks.last.sortOrder + 10),
               isDirty: const Value(true),
             ),
           );
@@ -150,8 +150,9 @@ class HomeRepository {
       throw ArgumentError('任务名称最多 7 个汉字');
     }
 
-    await (_db.update(_db.localHabits)..where((table) => table.id.equals(taskId)))
-        .write(
+    await (_db.update(
+      _db.localHabits,
+    )..where((table) => table.id.equals(taskId))).write(
       LocalHabitsCompanion(
         name: Value(trimmed),
         isDirty: const Value(true),
@@ -175,8 +176,9 @@ class HomeRepository {
       throw StateError('至少保留 1 个任务');
     }
 
-    await (_db.update(_db.localHabits)..where((table) => table.id.equals(taskId)))
-        .write(
+    await (_db.update(
+      _db.localHabits,
+    )..where((table) => table.id.equals(taskId))).write(
       LocalHabitsCompanion(
         isActive: const Value(false),
         isDirty: const Value(true),
@@ -205,9 +207,9 @@ class HomeRepository {
 
     await _db.transaction(() async {
       for (var index = 0; index < tasks.length; index += 1) {
-        await (_db.update(_db.localHabits)
-              ..where((table) => table.id.equals(tasks[index].id)))
-            .write(
+        await (_db.update(
+          _db.localHabits,
+        )..where((table) => table.id.equals(tasks[index].id))).write(
           LocalHabitsCompanion(
             sortOrder: Value((index + 1) * 10),
             isDirty: const Value(true),
@@ -229,10 +231,11 @@ class HomeRepository {
   }
 
   Future<void> _flushPendingOperations() async {
-    final operations = await (_db.select(_db.syncOperations)
-          ..where((table) => table.status.equals('pending'))
-          ..orderBy([(table) => OrderingTerm.asc(table.createdAt)]))
-        .get();
+    final operations =
+        await (_db.select(_db.syncOperations)
+              ..where((table) => table.status.equals('pending'))
+              ..orderBy([(table) => OrderingTerm.asc(table.createdAt)]))
+            .get();
 
     for (final operation in operations) {
       try {
@@ -253,24 +256,26 @@ class HomeRepository {
             payload: payload,
           );
         }
-        await (_db.update(_db.syncOperations)
-              ..where((table) => table.operationId.equals(operation.operationId)))
+        await (_db.update(_db.syncOperations)..where(
+              (table) => table.operationId.equals(operation.operationId),
+            ))
             .write(
-          SyncOperationsCompanion(
-            status: const Value('synced'),
-            updatedAt: Value(DateTime.now()),
-          ),
-        );
+              SyncOperationsCompanion(
+                status: const Value('synced'),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
       } catch (error) {
-        await (_db.update(_db.syncOperations)
-              ..where((table) => table.operationId.equals(operation.operationId)))
+        await (_db.update(_db.syncOperations)..where(
+              (table) => table.operationId.equals(operation.operationId),
+            ))
             .write(
-          SyncOperationsCompanion(
-            attemptCount: Value(operation.attemptCount + 1),
-            lastError: Value(error.toString()),
-            updatedAt: Value(DateTime.now()),
-          ),
-        );
+              SyncOperationsCompanion(
+                attemptCount: Value(operation.attemptCount + 1),
+                lastError: Value(error.toString()),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
         break;
       }
     }
@@ -287,13 +292,17 @@ class HomeRepository {
     }
 
     await _db.transaction(() async {
-      await _db.into(_db.localChildren).insert(
+      await _db
+          .into(_db.localChildren)
+          .insert(
             LocalChildrenCompanion.insert(
               id: const Value(1),
               nickname: const Value('小勇士'),
             ),
           );
-      await _db.into(_db.localAssetSnapshots).insert(
+      await _db
+          .into(_db.localAssetSnapshots)
+          .insert(
             LocalAssetSnapshotsCompanion.insert(
               childId: const Value(1),
               snapshotDate: _today(),
@@ -312,7 +321,9 @@ class HomeRepository {
     String iconName,
     int sortOrder,
   ) {
-    return _db.into(_db.localHabits).insertOnConflictUpdate(
+    return _db
+        .into(_db.localHabits)
+        .insertOnConflictUpdate(
           LocalHabitsCompanion.insert(
             id: Value(id),
             childId: childId,
@@ -332,7 +343,9 @@ class HomeRepository {
     final childId = _asInt(child['id'], fallback: 1);
 
     await _db.transaction(() async {
-      await _db.into(_db.localChildren).insertOnConflictUpdate(
+      await _db
+          .into(_db.localChildren)
+          .insertOnConflictUpdate(
             LocalChildrenCompanion.insert(
               id: Value(childId),
               nickname: Value(child['nickname']?.toString() ?? '小勇士'),
@@ -340,22 +353,24 @@ class HomeRepository {
               ageStage: Value(child['ageStage']?.toString() ?? '5-6'),
               avatarIcon: Value(
                 (child['avatarConfig'] is Map
-                        ? child['avatarConfig']['icon']
-                        : null)
-                    ?.toString() ??
+                            ? child['avatarConfig']['icon']
+                            : null)
+                        ?.toString() ??
                     'face_rounded',
               ),
               avatarColor: Value(
                 (child['avatarConfig'] is Map
-                        ? child['avatarConfig']['color']
-                        : null)
-                    ?.toString() ??
+                            ? child['avatarConfig']['color']
+                            : null)
+                        ?.toString() ??
                     'green',
               ),
               needsProfileSetup: Value(child['needsProfileSetup'] == true),
             ),
           );
-      await _db.into(_db.localAssetSnapshots).insertOnConflictUpdate(
+      await _db
+          .into(_db.localAssetSnapshots)
+          .insertOnConflictUpdate(
             LocalAssetSnapshotsCompanion.insert(
               childId: Value(childId),
               availableStars: Value(_asInt(assets['availableStars'])),
@@ -371,7 +386,9 @@ class HomeRepository {
         if (item is! Map<String, dynamic>) continue;
         final id = _asInt(item['id']);
         if (id == 0) continue;
-        await _db.into(_db.localHabits).insertOnConflictUpdate(
+        await _db
+            .into(_db.localHabits)
+            .insertOnConflictUpdate(
               LocalHabitsCompanion.insert(
                 id: Value(id),
                 childId: childId,
@@ -399,19 +416,20 @@ class HomeRepository {
     final child = await _activeChild();
     final tasks = await _activeTasks(child.id);
     final today = _today();
-    final records = await (_db.select(_db.localHabitRecords)
-          ..where(
-            (table) =>
-                table.childId.equals(child.id) & table.recordDate.equals(today),
-          ))
-        .get();
+    final records =
+        await (_db.select(_db.localHabitRecords)..where(
+              (table) =>
+                  table.childId.equals(child.id) &
+                  table.recordDate.equals(today),
+            ))
+            .get();
     final recordByTask = {for (final record in records) record.habitId: record};
-    final asset = await (_db.select(_db.localAssetSnapshots)
-          ..where((table) => table.childId.equals(child.id)))
-        .getSingleOrNull();
-    final badges = await (_db.select(_db.localChildBadges)
-          ..where((table) => table.childId.equals(child.id)))
-        .get();
+    final asset = await (_db.select(
+      _db.localAssetSnapshots,
+    )..where((table) => table.childId.equals(child.id))).getSingleOrNull();
+    final badges = await (_db.select(
+      _db.localChildBadges,
+    )..where((table) => table.childId.equals(child.id))).get();
 
     return HomeSnapshot(
       child: ChildSummary(
@@ -461,18 +479,13 @@ class HomeRepository {
         .get();
   }
 
-  Future<LocalHabitRecord?> _recordFor(
-    int childId,
-    int taskId,
-    String date,
-  ) {
-    return (_db.select(_db.localHabitRecords)
-          ..where(
-            (table) =>
-                table.childId.equals(childId) &
-                table.habitId.equals(taskId) &
-                table.recordDate.equals(date),
-          ))
+  Future<LocalHabitRecord?> _recordFor(int childId, int taskId, String date) {
+    return (_db.select(_db.localHabitRecords)..where(
+          (table) =>
+              table.childId.equals(childId) &
+              table.habitId.equals(taskId) &
+              table.recordDate.equals(date),
+        ))
         .getSingleOrNull();
   }
 
@@ -485,7 +498,9 @@ class HomeRepository {
   }) async {
     final existing = await _recordFor(childId, taskId, recordDate);
     if (existing == null) {
-      await _db.into(_db.localHabitRecords).insert(
+      await _db
+          .into(_db.localHabitRecords)
+          .insert(
             LocalHabitRecordsCompanion.insert(
               childId: childId,
               habitId: taskId,
@@ -495,9 +510,9 @@ class HomeRepository {
             ),
           );
     } else {
-      await (_db.update(_db.localHabitRecords)
-            ..where((table) => table.id.equals(existing.id)))
-          .write(
+      await (_db.update(
+        _db.localHabitRecords,
+      )..where((table) => table.id.equals(existing.id))).write(
         LocalHabitRecordsCompanion(
           status: Value(status),
           operationId: Value(operationId),
@@ -512,14 +527,14 @@ class HomeRepository {
     if (tasks.isEmpty) {
       return false;
     }
-    final records = await (_db.select(_db.localHabitRecords)
-          ..where(
-            (table) =>
-                table.childId.equals(childId) &
-                table.recordDate.equals(date) &
-                table.status.equals('done'),
-          ))
-        .get();
+    final records =
+        await (_db.select(_db.localHabitRecords)..where(
+              (table) =>
+                  table.childId.equals(childId) &
+                  table.recordDate.equals(date) &
+                  table.status.equals('done'),
+            ))
+            .get();
     final doneIds = records.map((record) => record.habitId).toSet();
     return tasks.every((task) => doneIds.contains(task.id));
   }
@@ -546,16 +561,18 @@ class HomeRepository {
     required int stars,
     required bool shouldExist,
   }) async {
-    final existing = await (_db.select(_db.localDailyAwards)
-          ..where(
-            (table) =>
-                table.childId.equals(childId) &
-                table.awardDate.equals(date) &
-                table.awardType.equals(awardType),
-          ))
-        .getSingleOrNull();
+    final existing =
+        await (_db.select(_db.localDailyAwards)..where(
+              (table) =>
+                  table.childId.equals(childId) &
+                  table.awardDate.equals(date) &
+                  table.awardType.equals(awardType),
+            ))
+            .getSingleOrNull();
     if (shouldExist && existing == null) {
-      await _db.into(_db.localDailyAwards).insert(
+      await _db
+          .into(_db.localDailyAwards)
+          .insert(
             LocalDailyAwardsCompanion.insert(
               childId: childId,
               awardDate: date,
@@ -565,9 +582,9 @@ class HomeRepository {
           );
       await _changeStars(childId, stars);
     } else if (!shouldExist && existing != null) {
-      await (_db.delete(_db.localDailyAwards)
-            ..where((table) => table.id.equals(existing.id)))
-          .go();
+      await (_db.delete(
+        _db.localDailyAwards,
+      )..where((table) => table.id.equals(existing.id))).go();
       await _changeStars(childId, -stars);
     }
   }
@@ -579,16 +596,18 @@ class HomeRepository {
   }
 
   Future<void> _changeStars(int childId, int delta) async {
-    final asset = await (_db.select(_db.localAssetSnapshots)
-          ..where((table) => table.childId.equals(childId)))
-        .getSingleOrNull();
+    final asset = await (_db.select(
+      _db.localAssetSnapshots,
+    )..where((table) => table.childId.equals(childId))).getSingleOrNull();
     final available = ((asset?.availableStars ?? 0) + delta)
         .clamp(0, 1 << 30)
         .toInt();
     final lifetime = ((asset?.lifetimeStars ?? 0) + delta)
         .clamp(0, 1 << 30)
         .toInt();
-    await _db.into(_db.localAssetSnapshots).insertOnConflictUpdate(
+    await _db
+        .into(_db.localAssetSnapshots)
+        .insertOnConflictUpdate(
           LocalAssetSnapshotsCompanion.insert(
             childId: Value(childId),
             availableStars: Value(available),
@@ -607,7 +626,9 @@ class HomeRepository {
     required String entityId,
     required Map<String, Object?> payload,
   }) {
-    return _db.into(_db.syncOperations).insertOnConflictUpdate(
+    return _db
+        .into(_db.syncOperations)
+        .insertOnConflictUpdate(
           SyncOperationsCompanion.insert(
             operationId: operationId,
             operationType: operationType,

@@ -20,7 +20,8 @@ class LocalChildren extends Table {
   TextColumn get nickname => text().withDefault(const Constant('小勇士'))();
   TextColumn get gender => text().withDefault(const Constant('unknown'))();
   TextColumn get ageStage => text().withDefault(const Constant('5-6'))();
-  TextColumn get avatarIcon => text().withDefault(const Constant('face_rounded'))();
+  TextColumn get avatarIcon =>
+      text().withDefault(const Constant('face_rounded'))();
   TextColumn get avatarColor => text().withDefault(const Constant('green'))();
   BoolColumn get needsProfileSetup =>
       boolean().withDefault(const Constant(true))();
@@ -105,6 +106,35 @@ class SyncOperations extends Table {
   Set<Column<Object>> get primaryKey => {operationId};
 }
 
+class LocalCycleProfiles extends Table {
+  IntColumn get id => integer()();
+  TextColumn get lastPeriodStartDate => text().nullable()();
+  IntColumn get periodLengthDays => integer().withDefault(const Constant(5))();
+  IntColumn get cycleLengthDays => integer().withDefault(const Constant(28))();
+  TextColumn get birthDate => text().nullable()();
+  BoolColumn get isSetupComplete =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get cloudSyncEnabled =>
+      boolean().withDefault(const Constant(false))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class LocalCycleDayLogs extends Table {
+  TextColumn get logDate => text()();
+  TextColumn get diaryText => text().withDefault(const Constant(''))();
+  TextColumn get flowLevel => text().withDefault(const Constant('none'))();
+  TextColumn get symptomsJson => text().withDefault(const Constant('[]'))();
+  TextColumn get operationId => text().withDefault(const Constant(''))();
+  BoolColumn get isDirty => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {logDate};
+}
+
 @DriftDatabase(
   tables: [
     LocalChildren,
@@ -114,6 +144,8 @@ class SyncOperations extends Table {
     LocalChildBadges,
     LocalDailyAwards,
     SyncOperations,
+    LocalCycleProfiles,
+    LocalCycleDayLogs,
   ],
 )
 class LocalDatabase extends _$LocalDatabase {
@@ -125,7 +157,12 @@ class LocalDatabase extends _$LocalDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) => migrator.createAll(),
-    onUpgrade: (migrator, from, to) async {},
+    onUpgrade: (migrator, from, to) async {
+      if (from < 3) {
+        await migrator.createTable(localCycleProfiles);
+        await migrator.createTable(localCycleDayLogs);
+      }
+    },
   );
 }
 

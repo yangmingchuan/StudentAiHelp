@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:little_hero/core/theme/app_theme.dart';
-import 'package:little_hero/core/widgets/page_heading.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:little_hero/features/today_tasks/application/home_controller.dart';
 import 'package:little_hero/features/today_tasks/domain/home_snapshot.dart';
@@ -26,7 +25,7 @@ class TodayTasksPage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
               sliver: SliverList.list(
                 children: [
-                  PageHeading(
+                  _HomeHeading(
                     title: '${snapshot.child.nickname}，今天也要加油',
                     subtitle: snapshot.isStale
                         ? '当前显示本地缓存，网络恢复后会自动同步'
@@ -49,7 +48,8 @@ class TodayTasksPage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
               sliver: SliverList.separated(
                 itemCount: snapshot.tasks.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final task = snapshot.tasks[index];
                   return _TaskTile(
@@ -58,9 +58,6 @@ class TodayTasksPage extends ConsumerWidget {
                     onDone: () => ref
                         .read(homeControllerProvider.notifier)
                         .setTaskStatus(task.id, TaskStatus.done),
-                    onClear: () => ref
-                        .read(homeControllerProvider.notifier)
-                        .clearTaskStatus(task.id),
                   );
                 },
               ),
@@ -77,6 +74,41 @@ class TodayTasksPage extends ConsumerWidget {
   }
 }
 
+class _HomeHeading extends StatelessWidget {
+  const _HomeHeading({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: AppColors.ink,
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            height: 1.18,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            color: AppColors.ink,
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            height: 1.35,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _AssetStrip extends StatelessWidget {
   const _AssetStrip({required this.assets});
 
@@ -89,7 +121,6 @@ class _AssetStrip extends StatelessWidget {
         Expanded(
           child: _AssetChip(
             icon: Icons.star_rounded,
-            label: '星星',
             value: assets.availableStars.toString(),
             color: AppColors.orange,
           ),
@@ -98,7 +129,6 @@ class _AssetStrip extends StatelessWidget {
         Expanded(
           child: _AssetChip(
             icon: Icons.workspace_premium_rounded,
-            label: '勋章',
             value: assets.badgeCount.toString(),
             color: AppColors.green,
           ),
@@ -107,7 +137,6 @@ class _AssetStrip extends StatelessWidget {
         Expanded(
           child: _AssetChip(
             icon: Icons.favorite_rounded,
-            label: '心心',
             value: '${assets.heartsRemaining}/${assets.heartsLimit}',
             color: AppColors.coral,
           ),
@@ -120,13 +149,11 @@ class _AssetStrip extends StatelessWidget {
 class _AssetChip extends StatelessWidget {
   const _AssetChip({
     required this.icon,
-    required this.label,
     required this.value,
     required this.color,
   });
 
   final IconData icon;
-  final String label;
   final String value;
   final Color color;
 
@@ -138,19 +165,22 @@ class _AssetChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              '$value $label',
-              maxLines: 1,
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
+            Icon(icon, color: color, size: 26),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -165,13 +195,11 @@ class _TaskTile extends StatelessWidget {
     required this.task,
     required this.color,
     required this.onDone,
-    required this.onClear,
   });
 
   final TaskSummary task;
   final Color color;
   final VoidCallback onDone;
-  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +223,11 @@ class _TaskTile extends StatelessWidget {
             Expanded(
               child: Text(
                 task.name,
-                style: Theme.of(context).textTheme.titleLarge,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             IconButton.filledTonal(
@@ -206,20 +238,7 @@ class _TaskTile extends StatelessWidget {
                     ? AppColors.green.withValues(alpha: 0.24)
                     : null,
               ),
-              icon: Icon(
-                task.isDone
-                    ? Icons.check_circle_rounded
-                    : Icons.check_rounded,
-              ),
-            ),
-            const SizedBox(width: 6),
-            IconButton.outlined(
-              tooltip: '清空',
-              onPressed: task.status == TaskStatus.none ? null : onClear,
-              style: IconButton.styleFrom(
-                foregroundColor: AppColors.coral,
-              ),
-              icon: const Icon(Icons.refresh_rounded),
+              icon: Icon(Icons.check_rounded),
             ),
           ],
         ),

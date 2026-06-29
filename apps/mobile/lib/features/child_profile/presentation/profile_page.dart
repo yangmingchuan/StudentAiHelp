@@ -161,7 +161,11 @@ class _GrowthCard extends StatelessWidget {
                 const CircleAvatar(
                   radius: 36,
                   backgroundColor: AppColors.green,
-                  child: Icon(Icons.face_rounded, color: Colors.white, size: 42),
+                  child: Icon(
+                    Icons.face_rounded,
+                    color: Colors.white,
+                    size: 42,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

@@ -3348,6 +3348,1007 @@ class SyncOperationsCompanion extends UpdateCompanion<SyncOperation> {
   }
 }
 
+class $LocalCycleProfilesTable extends LocalCycleProfiles
+    with TableInfo<$LocalCycleProfilesTable, LocalCycleProfile> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalCycleProfilesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastPeriodStartDateMeta =
+      const VerificationMeta('lastPeriodStartDate');
+  @override
+  late final GeneratedColumn<String> lastPeriodStartDate =
+      GeneratedColumn<String>(
+        'last_period_start_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _periodLengthDaysMeta = const VerificationMeta(
+    'periodLengthDays',
+  );
+  @override
+  late final GeneratedColumn<int> periodLengthDays = GeneratedColumn<int>(
+    'period_length_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(5),
+  );
+  static const VerificationMeta _cycleLengthDaysMeta = const VerificationMeta(
+    'cycleLengthDays',
+  );
+  @override
+  late final GeneratedColumn<int> cycleLengthDays = GeneratedColumn<int>(
+    'cycle_length_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(28),
+  );
+  static const VerificationMeta _birthDateMeta = const VerificationMeta(
+    'birthDate',
+  );
+  @override
+  late final GeneratedColumn<String> birthDate = GeneratedColumn<String>(
+    'birth_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isSetupCompleteMeta = const VerificationMeta(
+    'isSetupComplete',
+  );
+  @override
+  late final GeneratedColumn<bool> isSetupComplete = GeneratedColumn<bool>(
+    'is_setup_complete',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_setup_complete" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _cloudSyncEnabledMeta = const VerificationMeta(
+    'cloudSyncEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> cloudSyncEnabled = GeneratedColumn<bool>(
+    'cloud_sync_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("cloud_sync_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    lastPeriodStartDate,
+    periodLengthDays,
+    cycleLengthDays,
+    birthDate,
+    isSetupComplete,
+    cloudSyncEnabled,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_cycle_profiles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalCycleProfile> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('last_period_start_date')) {
+      context.handle(
+        _lastPeriodStartDateMeta,
+        lastPeriodStartDate.isAcceptableOrUnknown(
+          data['last_period_start_date']!,
+          _lastPeriodStartDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('period_length_days')) {
+      context.handle(
+        _periodLengthDaysMeta,
+        periodLengthDays.isAcceptableOrUnknown(
+          data['period_length_days']!,
+          _periodLengthDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cycle_length_days')) {
+      context.handle(
+        _cycleLengthDaysMeta,
+        cycleLengthDays.isAcceptableOrUnknown(
+          data['cycle_length_days']!,
+          _cycleLengthDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('birth_date')) {
+      context.handle(
+        _birthDateMeta,
+        birthDate.isAcceptableOrUnknown(data['birth_date']!, _birthDateMeta),
+      );
+    }
+    if (data.containsKey('is_setup_complete')) {
+      context.handle(
+        _isSetupCompleteMeta,
+        isSetupComplete.isAcceptableOrUnknown(
+          data['is_setup_complete']!,
+          _isSetupCompleteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cloud_sync_enabled')) {
+      context.handle(
+        _cloudSyncEnabledMeta,
+        cloudSyncEnabled.isAcceptableOrUnknown(
+          data['cloud_sync_enabled']!,
+          _cloudSyncEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalCycleProfile map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalCycleProfile(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      lastPeriodStartDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_period_start_date'],
+      ),
+      periodLengthDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}period_length_days'],
+      )!,
+      cycleLengthDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cycle_length_days'],
+      )!,
+      birthDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}birth_date'],
+      ),
+      isSetupComplete: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_setup_complete'],
+      )!,
+      cloudSyncEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}cloud_sync_enabled'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalCycleProfilesTable createAlias(String alias) {
+    return $LocalCycleProfilesTable(attachedDatabase, alias);
+  }
+}
+
+class LocalCycleProfile extends DataClass
+    implements Insertable<LocalCycleProfile> {
+  final int id;
+  final String? lastPeriodStartDate;
+  final int periodLengthDays;
+  final int cycleLengthDays;
+  final String? birthDate;
+  final bool isSetupComplete;
+  final bool cloudSyncEnabled;
+  final DateTime updatedAt;
+  const LocalCycleProfile({
+    required this.id,
+    this.lastPeriodStartDate,
+    required this.periodLengthDays,
+    required this.cycleLengthDays,
+    this.birthDate,
+    required this.isSetupComplete,
+    required this.cloudSyncEnabled,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || lastPeriodStartDate != null) {
+      map['last_period_start_date'] = Variable<String>(lastPeriodStartDate);
+    }
+    map['period_length_days'] = Variable<int>(periodLengthDays);
+    map['cycle_length_days'] = Variable<int>(cycleLengthDays);
+    if (!nullToAbsent || birthDate != null) {
+      map['birth_date'] = Variable<String>(birthDate);
+    }
+    map['is_setup_complete'] = Variable<bool>(isSetupComplete);
+    map['cloud_sync_enabled'] = Variable<bool>(cloudSyncEnabled);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalCycleProfilesCompanion toCompanion(bool nullToAbsent) {
+    return LocalCycleProfilesCompanion(
+      id: Value(id),
+      lastPeriodStartDate: lastPeriodStartDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastPeriodStartDate),
+      periodLengthDays: Value(periodLengthDays),
+      cycleLengthDays: Value(cycleLengthDays),
+      birthDate: birthDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(birthDate),
+      isSetupComplete: Value(isSetupComplete),
+      cloudSyncEnabled: Value(cloudSyncEnabled),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalCycleProfile.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalCycleProfile(
+      id: serializer.fromJson<int>(json['id']),
+      lastPeriodStartDate: serializer.fromJson<String?>(
+        json['lastPeriodStartDate'],
+      ),
+      periodLengthDays: serializer.fromJson<int>(json['periodLengthDays']),
+      cycleLengthDays: serializer.fromJson<int>(json['cycleLengthDays']),
+      birthDate: serializer.fromJson<String?>(json['birthDate']),
+      isSetupComplete: serializer.fromJson<bool>(json['isSetupComplete']),
+      cloudSyncEnabled: serializer.fromJson<bool>(json['cloudSyncEnabled']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'lastPeriodStartDate': serializer.toJson<String?>(lastPeriodStartDate),
+      'periodLengthDays': serializer.toJson<int>(periodLengthDays),
+      'cycleLengthDays': serializer.toJson<int>(cycleLengthDays),
+      'birthDate': serializer.toJson<String?>(birthDate),
+      'isSetupComplete': serializer.toJson<bool>(isSetupComplete),
+      'cloudSyncEnabled': serializer.toJson<bool>(cloudSyncEnabled),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalCycleProfile copyWith({
+    int? id,
+    Value<String?> lastPeriodStartDate = const Value.absent(),
+    int? periodLengthDays,
+    int? cycleLengthDays,
+    Value<String?> birthDate = const Value.absent(),
+    bool? isSetupComplete,
+    bool? cloudSyncEnabled,
+    DateTime? updatedAt,
+  }) => LocalCycleProfile(
+    id: id ?? this.id,
+    lastPeriodStartDate: lastPeriodStartDate.present
+        ? lastPeriodStartDate.value
+        : this.lastPeriodStartDate,
+    periodLengthDays: periodLengthDays ?? this.periodLengthDays,
+    cycleLengthDays: cycleLengthDays ?? this.cycleLengthDays,
+    birthDate: birthDate.present ? birthDate.value : this.birthDate,
+    isSetupComplete: isSetupComplete ?? this.isSetupComplete,
+    cloudSyncEnabled: cloudSyncEnabled ?? this.cloudSyncEnabled,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  LocalCycleProfile copyWithCompanion(LocalCycleProfilesCompanion data) {
+    return LocalCycleProfile(
+      id: data.id.present ? data.id.value : this.id,
+      lastPeriodStartDate: data.lastPeriodStartDate.present
+          ? data.lastPeriodStartDate.value
+          : this.lastPeriodStartDate,
+      periodLengthDays: data.periodLengthDays.present
+          ? data.periodLengthDays.value
+          : this.periodLengthDays,
+      cycleLengthDays: data.cycleLengthDays.present
+          ? data.cycleLengthDays.value
+          : this.cycleLengthDays,
+      birthDate: data.birthDate.present ? data.birthDate.value : this.birthDate,
+      isSetupComplete: data.isSetupComplete.present
+          ? data.isSetupComplete.value
+          : this.isSetupComplete,
+      cloudSyncEnabled: data.cloudSyncEnabled.present
+          ? data.cloudSyncEnabled.value
+          : this.cloudSyncEnabled,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalCycleProfile(')
+          ..write('id: $id, ')
+          ..write('lastPeriodStartDate: $lastPeriodStartDate, ')
+          ..write('periodLengthDays: $periodLengthDays, ')
+          ..write('cycleLengthDays: $cycleLengthDays, ')
+          ..write('birthDate: $birthDate, ')
+          ..write('isSetupComplete: $isSetupComplete, ')
+          ..write('cloudSyncEnabled: $cloudSyncEnabled, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    lastPeriodStartDate,
+    periodLengthDays,
+    cycleLengthDays,
+    birthDate,
+    isSetupComplete,
+    cloudSyncEnabled,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalCycleProfile &&
+          other.id == this.id &&
+          other.lastPeriodStartDate == this.lastPeriodStartDate &&
+          other.periodLengthDays == this.periodLengthDays &&
+          other.cycleLengthDays == this.cycleLengthDays &&
+          other.birthDate == this.birthDate &&
+          other.isSetupComplete == this.isSetupComplete &&
+          other.cloudSyncEnabled == this.cloudSyncEnabled &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalCycleProfilesCompanion extends UpdateCompanion<LocalCycleProfile> {
+  final Value<int> id;
+  final Value<String?> lastPeriodStartDate;
+  final Value<int> periodLengthDays;
+  final Value<int> cycleLengthDays;
+  final Value<String?> birthDate;
+  final Value<bool> isSetupComplete;
+  final Value<bool> cloudSyncEnabled;
+  final Value<DateTime> updatedAt;
+  const LocalCycleProfilesCompanion({
+    this.id = const Value.absent(),
+    this.lastPeriodStartDate = const Value.absent(),
+    this.periodLengthDays = const Value.absent(),
+    this.cycleLengthDays = const Value.absent(),
+    this.birthDate = const Value.absent(),
+    this.isSetupComplete = const Value.absent(),
+    this.cloudSyncEnabled = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  LocalCycleProfilesCompanion.insert({
+    this.id = const Value.absent(),
+    this.lastPeriodStartDate = const Value.absent(),
+    this.periodLengthDays = const Value.absent(),
+    this.cycleLengthDays = const Value.absent(),
+    this.birthDate = const Value.absent(),
+    this.isSetupComplete = const Value.absent(),
+    this.cloudSyncEnabled = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  static Insertable<LocalCycleProfile> custom({
+    Expression<int>? id,
+    Expression<String>? lastPeriodStartDate,
+    Expression<int>? periodLengthDays,
+    Expression<int>? cycleLengthDays,
+    Expression<String>? birthDate,
+    Expression<bool>? isSetupComplete,
+    Expression<bool>? cloudSyncEnabled,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (lastPeriodStartDate != null)
+        'last_period_start_date': lastPeriodStartDate,
+      if (periodLengthDays != null) 'period_length_days': periodLengthDays,
+      if (cycleLengthDays != null) 'cycle_length_days': cycleLengthDays,
+      if (birthDate != null) 'birth_date': birthDate,
+      if (isSetupComplete != null) 'is_setup_complete': isSetupComplete,
+      if (cloudSyncEnabled != null) 'cloud_sync_enabled': cloudSyncEnabled,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  LocalCycleProfilesCompanion copyWith({
+    Value<int>? id,
+    Value<String?>? lastPeriodStartDate,
+    Value<int>? periodLengthDays,
+    Value<int>? cycleLengthDays,
+    Value<String?>? birthDate,
+    Value<bool>? isSetupComplete,
+    Value<bool>? cloudSyncEnabled,
+    Value<DateTime>? updatedAt,
+  }) {
+    return LocalCycleProfilesCompanion(
+      id: id ?? this.id,
+      lastPeriodStartDate: lastPeriodStartDate ?? this.lastPeriodStartDate,
+      periodLengthDays: periodLengthDays ?? this.periodLengthDays,
+      cycleLengthDays: cycleLengthDays ?? this.cycleLengthDays,
+      birthDate: birthDate ?? this.birthDate,
+      isSetupComplete: isSetupComplete ?? this.isSetupComplete,
+      cloudSyncEnabled: cloudSyncEnabled ?? this.cloudSyncEnabled,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (lastPeriodStartDate.present) {
+      map['last_period_start_date'] = Variable<String>(
+        lastPeriodStartDate.value,
+      );
+    }
+    if (periodLengthDays.present) {
+      map['period_length_days'] = Variable<int>(periodLengthDays.value);
+    }
+    if (cycleLengthDays.present) {
+      map['cycle_length_days'] = Variable<int>(cycleLengthDays.value);
+    }
+    if (birthDate.present) {
+      map['birth_date'] = Variable<String>(birthDate.value);
+    }
+    if (isSetupComplete.present) {
+      map['is_setup_complete'] = Variable<bool>(isSetupComplete.value);
+    }
+    if (cloudSyncEnabled.present) {
+      map['cloud_sync_enabled'] = Variable<bool>(cloudSyncEnabled.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalCycleProfilesCompanion(')
+          ..write('id: $id, ')
+          ..write('lastPeriodStartDate: $lastPeriodStartDate, ')
+          ..write('periodLengthDays: $periodLengthDays, ')
+          ..write('cycleLengthDays: $cycleLengthDays, ')
+          ..write('birthDate: $birthDate, ')
+          ..write('isSetupComplete: $isSetupComplete, ')
+          ..write('cloudSyncEnabled: $cloudSyncEnabled, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalCycleDayLogsTable extends LocalCycleDayLogs
+    with TableInfo<$LocalCycleDayLogsTable, LocalCycleDayLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalCycleDayLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _logDateMeta = const VerificationMeta(
+    'logDate',
+  );
+  @override
+  late final GeneratedColumn<String> logDate = GeneratedColumn<String>(
+    'log_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _diaryTextMeta = const VerificationMeta(
+    'diaryText',
+  );
+  @override
+  late final GeneratedColumn<String> diaryText = GeneratedColumn<String>(
+    'diary_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _flowLevelMeta = const VerificationMeta(
+    'flowLevel',
+  );
+  @override
+  late final GeneratedColumn<String> flowLevel = GeneratedColumn<String>(
+    'flow_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('none'),
+  );
+  static const VerificationMeta _symptomsJsonMeta = const VerificationMeta(
+    'symptomsJson',
+  );
+  @override
+  late final GeneratedColumn<String> symptomsJson = GeneratedColumn<String>(
+    'symptoms_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _operationIdMeta = const VerificationMeta(
+    'operationId',
+  );
+  @override
+  late final GeneratedColumn<String> operationId = GeneratedColumn<String>(
+    'operation_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    logDate,
+    diaryText,
+    flowLevel,
+    symptomsJson,
+    operationId,
+    isDirty,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_cycle_day_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalCycleDayLog> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('log_date')) {
+      context.handle(
+        _logDateMeta,
+        logDate.isAcceptableOrUnknown(data['log_date']!, _logDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_logDateMeta);
+    }
+    if (data.containsKey('diary_text')) {
+      context.handle(
+        _diaryTextMeta,
+        diaryText.isAcceptableOrUnknown(data['diary_text']!, _diaryTextMeta),
+      );
+    }
+    if (data.containsKey('flow_level')) {
+      context.handle(
+        _flowLevelMeta,
+        flowLevel.isAcceptableOrUnknown(data['flow_level']!, _flowLevelMeta),
+      );
+    }
+    if (data.containsKey('symptoms_json')) {
+      context.handle(
+        _symptomsJsonMeta,
+        symptomsJson.isAcceptableOrUnknown(
+          data['symptoms_json']!,
+          _symptomsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('operation_id')) {
+      context.handle(
+        _operationIdMeta,
+        operationId.isAcceptableOrUnknown(
+          data['operation_id']!,
+          _operationIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {logDate};
+  @override
+  LocalCycleDayLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalCycleDayLog(
+      logDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}log_date'],
+      )!,
+      diaryText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}diary_text'],
+      )!,
+      flowLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}flow_level'],
+      )!,
+      symptomsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}symptoms_json'],
+      )!,
+      operationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation_id'],
+      )!,
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalCycleDayLogsTable createAlias(String alias) {
+    return $LocalCycleDayLogsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalCycleDayLog extends DataClass
+    implements Insertable<LocalCycleDayLog> {
+  final String logDate;
+  final String diaryText;
+  final String flowLevel;
+  final String symptomsJson;
+  final String operationId;
+  final bool isDirty;
+  final DateTime updatedAt;
+  const LocalCycleDayLog({
+    required this.logDate,
+    required this.diaryText,
+    required this.flowLevel,
+    required this.symptomsJson,
+    required this.operationId,
+    required this.isDirty,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['log_date'] = Variable<String>(logDate);
+    map['diary_text'] = Variable<String>(diaryText);
+    map['flow_level'] = Variable<String>(flowLevel);
+    map['symptoms_json'] = Variable<String>(symptomsJson);
+    map['operation_id'] = Variable<String>(operationId);
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalCycleDayLogsCompanion toCompanion(bool nullToAbsent) {
+    return LocalCycleDayLogsCompanion(
+      logDate: Value(logDate),
+      diaryText: Value(diaryText),
+      flowLevel: Value(flowLevel),
+      symptomsJson: Value(symptomsJson),
+      operationId: Value(operationId),
+      isDirty: Value(isDirty),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalCycleDayLog.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalCycleDayLog(
+      logDate: serializer.fromJson<String>(json['logDate']),
+      diaryText: serializer.fromJson<String>(json['diaryText']),
+      flowLevel: serializer.fromJson<String>(json['flowLevel']),
+      symptomsJson: serializer.fromJson<String>(json['symptomsJson']),
+      operationId: serializer.fromJson<String>(json['operationId']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'logDate': serializer.toJson<String>(logDate),
+      'diaryText': serializer.toJson<String>(diaryText),
+      'flowLevel': serializer.toJson<String>(flowLevel),
+      'symptomsJson': serializer.toJson<String>(symptomsJson),
+      'operationId': serializer.toJson<String>(operationId),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalCycleDayLog copyWith({
+    String? logDate,
+    String? diaryText,
+    String? flowLevel,
+    String? symptomsJson,
+    String? operationId,
+    bool? isDirty,
+    DateTime? updatedAt,
+  }) => LocalCycleDayLog(
+    logDate: logDate ?? this.logDate,
+    diaryText: diaryText ?? this.diaryText,
+    flowLevel: flowLevel ?? this.flowLevel,
+    symptomsJson: symptomsJson ?? this.symptomsJson,
+    operationId: operationId ?? this.operationId,
+    isDirty: isDirty ?? this.isDirty,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  LocalCycleDayLog copyWithCompanion(LocalCycleDayLogsCompanion data) {
+    return LocalCycleDayLog(
+      logDate: data.logDate.present ? data.logDate.value : this.logDate,
+      diaryText: data.diaryText.present ? data.diaryText.value : this.diaryText,
+      flowLevel: data.flowLevel.present ? data.flowLevel.value : this.flowLevel,
+      symptomsJson: data.symptomsJson.present
+          ? data.symptomsJson.value
+          : this.symptomsJson,
+      operationId: data.operationId.present
+          ? data.operationId.value
+          : this.operationId,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalCycleDayLog(')
+          ..write('logDate: $logDate, ')
+          ..write('diaryText: $diaryText, ')
+          ..write('flowLevel: $flowLevel, ')
+          ..write('symptomsJson: $symptomsJson, ')
+          ..write('operationId: $operationId, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    logDate,
+    diaryText,
+    flowLevel,
+    symptomsJson,
+    operationId,
+    isDirty,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalCycleDayLog &&
+          other.logDate == this.logDate &&
+          other.diaryText == this.diaryText &&
+          other.flowLevel == this.flowLevel &&
+          other.symptomsJson == this.symptomsJson &&
+          other.operationId == this.operationId &&
+          other.isDirty == this.isDirty &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalCycleDayLogsCompanion extends UpdateCompanion<LocalCycleDayLog> {
+  final Value<String> logDate;
+  final Value<String> diaryText;
+  final Value<String> flowLevel;
+  final Value<String> symptomsJson;
+  final Value<String> operationId;
+  final Value<bool> isDirty;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const LocalCycleDayLogsCompanion({
+    this.logDate = const Value.absent(),
+    this.diaryText = const Value.absent(),
+    this.flowLevel = const Value.absent(),
+    this.symptomsJson = const Value.absent(),
+    this.operationId = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalCycleDayLogsCompanion.insert({
+    required String logDate,
+    this.diaryText = const Value.absent(),
+    this.flowLevel = const Value.absent(),
+    this.symptomsJson = const Value.absent(),
+    this.operationId = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : logDate = Value(logDate);
+  static Insertable<LocalCycleDayLog> custom({
+    Expression<String>? logDate,
+    Expression<String>? diaryText,
+    Expression<String>? flowLevel,
+    Expression<String>? symptomsJson,
+    Expression<String>? operationId,
+    Expression<bool>? isDirty,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (logDate != null) 'log_date': logDate,
+      if (diaryText != null) 'diary_text': diaryText,
+      if (flowLevel != null) 'flow_level': flowLevel,
+      if (symptomsJson != null) 'symptoms_json': symptomsJson,
+      if (operationId != null) 'operation_id': operationId,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalCycleDayLogsCompanion copyWith({
+    Value<String>? logDate,
+    Value<String>? diaryText,
+    Value<String>? flowLevel,
+    Value<String>? symptomsJson,
+    Value<String>? operationId,
+    Value<bool>? isDirty,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return LocalCycleDayLogsCompanion(
+      logDate: logDate ?? this.logDate,
+      diaryText: diaryText ?? this.diaryText,
+      flowLevel: flowLevel ?? this.flowLevel,
+      symptomsJson: symptomsJson ?? this.symptomsJson,
+      operationId: operationId ?? this.operationId,
+      isDirty: isDirty ?? this.isDirty,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (logDate.present) {
+      map['log_date'] = Variable<String>(logDate.value);
+    }
+    if (diaryText.present) {
+      map['diary_text'] = Variable<String>(diaryText.value);
+    }
+    if (flowLevel.present) {
+      map['flow_level'] = Variable<String>(flowLevel.value);
+    }
+    if (symptomsJson.present) {
+      map['symptoms_json'] = Variable<String>(symptomsJson.value);
+    }
+    if (operationId.present) {
+      map['operation_id'] = Variable<String>(operationId.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalCycleDayLogsCompanion(')
+          ..write('logDate: $logDate, ')
+          ..write('diaryText: $diaryText, ')
+          ..write('flowLevel: $flowLevel, ')
+          ..write('symptomsJson: $symptomsJson, ')
+          ..write('operationId: $operationId, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$LocalDatabase extends GeneratedDatabase {
   _$LocalDatabase(QueryExecutor e) : super(e);
   $LocalDatabaseManager get managers => $LocalDatabaseManager(this);
@@ -3364,6 +4365,10 @@ abstract class _$LocalDatabase extends GeneratedDatabase {
     this,
   );
   late final $SyncOperationsTable syncOperations = $SyncOperationsTable(this);
+  late final $LocalCycleProfilesTable localCycleProfiles =
+      $LocalCycleProfilesTable(this);
+  late final $LocalCycleDayLogsTable localCycleDayLogs =
+      $LocalCycleDayLogsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3376,6 +4381,8 @@ abstract class _$LocalDatabase extends GeneratedDatabase {
     localChildBadges,
     localDailyAwards,
     syncOperations,
+    localCycleProfiles,
+    localCycleDayLogs,
   ];
 }
 
@@ -5165,6 +6172,535 @@ typedef $$SyncOperationsTableProcessedTableManager =
       SyncOperation,
       PrefetchHooks Function()
     >;
+typedef $$LocalCycleProfilesTableCreateCompanionBuilder =
+    LocalCycleProfilesCompanion Function({
+      Value<int> id,
+      Value<String?> lastPeriodStartDate,
+      Value<int> periodLengthDays,
+      Value<int> cycleLengthDays,
+      Value<String?> birthDate,
+      Value<bool> isSetupComplete,
+      Value<bool> cloudSyncEnabled,
+      Value<DateTime> updatedAt,
+    });
+typedef $$LocalCycleProfilesTableUpdateCompanionBuilder =
+    LocalCycleProfilesCompanion Function({
+      Value<int> id,
+      Value<String?> lastPeriodStartDate,
+      Value<int> periodLengthDays,
+      Value<int> cycleLengthDays,
+      Value<String?> birthDate,
+      Value<bool> isSetupComplete,
+      Value<bool> cloudSyncEnabled,
+      Value<DateTime> updatedAt,
+    });
+
+class $$LocalCycleProfilesTableFilterComposer
+    extends Composer<_$LocalDatabase, $LocalCycleProfilesTable> {
+  $$LocalCycleProfilesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastPeriodStartDate => $composableBuilder(
+    column: $table.lastPeriodStartDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get periodLengthDays => $composableBuilder(
+    column: $table.periodLengthDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cycleLengthDays => $composableBuilder(
+    column: $table.cycleLengthDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get birthDate => $composableBuilder(
+    column: $table.birthDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSetupComplete => $composableBuilder(
+    column: $table.isSetupComplete,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get cloudSyncEnabled => $composableBuilder(
+    column: $table.cloudSyncEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalCycleProfilesTableOrderingComposer
+    extends Composer<_$LocalDatabase, $LocalCycleProfilesTable> {
+  $$LocalCycleProfilesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastPeriodStartDate => $composableBuilder(
+    column: $table.lastPeriodStartDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get periodLengthDays => $composableBuilder(
+    column: $table.periodLengthDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cycleLengthDays => $composableBuilder(
+    column: $table.cycleLengthDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get birthDate => $composableBuilder(
+    column: $table.birthDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSetupComplete => $composableBuilder(
+    column: $table.isSetupComplete,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get cloudSyncEnabled => $composableBuilder(
+    column: $table.cloudSyncEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalCycleProfilesTableAnnotationComposer
+    extends Composer<_$LocalDatabase, $LocalCycleProfilesTable> {
+  $$LocalCycleProfilesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get lastPeriodStartDate => $composableBuilder(
+    column: $table.lastPeriodStartDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get periodLengthDays => $composableBuilder(
+    column: $table.periodLengthDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get cycleLengthDays => $composableBuilder(
+    column: $table.cycleLengthDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get birthDate =>
+      $composableBuilder(column: $table.birthDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSetupComplete => $composableBuilder(
+    column: $table.isSetupComplete,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get cloudSyncEnabled => $composableBuilder(
+    column: $table.cloudSyncEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalCycleProfilesTableTableManager
+    extends
+        RootTableManager<
+          _$LocalDatabase,
+          $LocalCycleProfilesTable,
+          LocalCycleProfile,
+          $$LocalCycleProfilesTableFilterComposer,
+          $$LocalCycleProfilesTableOrderingComposer,
+          $$LocalCycleProfilesTableAnnotationComposer,
+          $$LocalCycleProfilesTableCreateCompanionBuilder,
+          $$LocalCycleProfilesTableUpdateCompanionBuilder,
+          (
+            LocalCycleProfile,
+            BaseReferences<
+              _$LocalDatabase,
+              $LocalCycleProfilesTable,
+              LocalCycleProfile
+            >,
+          ),
+          LocalCycleProfile,
+          PrefetchHooks Function()
+        > {
+  $$LocalCycleProfilesTableTableManager(
+    _$LocalDatabase db,
+    $LocalCycleProfilesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalCycleProfilesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalCycleProfilesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalCycleProfilesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> lastPeriodStartDate = const Value.absent(),
+                Value<int> periodLengthDays = const Value.absent(),
+                Value<int> cycleLengthDays = const Value.absent(),
+                Value<String?> birthDate = const Value.absent(),
+                Value<bool> isSetupComplete = const Value.absent(),
+                Value<bool> cloudSyncEnabled = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => LocalCycleProfilesCompanion(
+                id: id,
+                lastPeriodStartDate: lastPeriodStartDate,
+                periodLengthDays: periodLengthDays,
+                cycleLengthDays: cycleLengthDays,
+                birthDate: birthDate,
+                isSetupComplete: isSetupComplete,
+                cloudSyncEnabled: cloudSyncEnabled,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> lastPeriodStartDate = const Value.absent(),
+                Value<int> periodLengthDays = const Value.absent(),
+                Value<int> cycleLengthDays = const Value.absent(),
+                Value<String?> birthDate = const Value.absent(),
+                Value<bool> isSetupComplete = const Value.absent(),
+                Value<bool> cloudSyncEnabled = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => LocalCycleProfilesCompanion.insert(
+                id: id,
+                lastPeriodStartDate: lastPeriodStartDate,
+                periodLengthDays: periodLengthDays,
+                cycleLengthDays: cycleLengthDays,
+                birthDate: birthDate,
+                isSetupComplete: isSetupComplete,
+                cloudSyncEnabled: cloudSyncEnabled,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalCycleProfilesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LocalDatabase,
+      $LocalCycleProfilesTable,
+      LocalCycleProfile,
+      $$LocalCycleProfilesTableFilterComposer,
+      $$LocalCycleProfilesTableOrderingComposer,
+      $$LocalCycleProfilesTableAnnotationComposer,
+      $$LocalCycleProfilesTableCreateCompanionBuilder,
+      $$LocalCycleProfilesTableUpdateCompanionBuilder,
+      (
+        LocalCycleProfile,
+        BaseReferences<
+          _$LocalDatabase,
+          $LocalCycleProfilesTable,
+          LocalCycleProfile
+        >,
+      ),
+      LocalCycleProfile,
+      PrefetchHooks Function()
+    >;
+typedef $$LocalCycleDayLogsTableCreateCompanionBuilder =
+    LocalCycleDayLogsCompanion Function({
+      required String logDate,
+      Value<String> diaryText,
+      Value<String> flowLevel,
+      Value<String> symptomsJson,
+      Value<String> operationId,
+      Value<bool> isDirty,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$LocalCycleDayLogsTableUpdateCompanionBuilder =
+    LocalCycleDayLogsCompanion Function({
+      Value<String> logDate,
+      Value<String> diaryText,
+      Value<String> flowLevel,
+      Value<String> symptomsJson,
+      Value<String> operationId,
+      Value<bool> isDirty,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$LocalCycleDayLogsTableFilterComposer
+    extends Composer<_$LocalDatabase, $LocalCycleDayLogsTable> {
+  $$LocalCycleDayLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get logDate => $composableBuilder(
+    column: $table.logDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get diaryText => $composableBuilder(
+    column: $table.diaryText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get flowLevel => $composableBuilder(
+    column: $table.flowLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get symptomsJson => $composableBuilder(
+    column: $table.symptomsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get operationId => $composableBuilder(
+    column: $table.operationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalCycleDayLogsTableOrderingComposer
+    extends Composer<_$LocalDatabase, $LocalCycleDayLogsTable> {
+  $$LocalCycleDayLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get logDate => $composableBuilder(
+    column: $table.logDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get diaryText => $composableBuilder(
+    column: $table.diaryText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get flowLevel => $composableBuilder(
+    column: $table.flowLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get symptomsJson => $composableBuilder(
+    column: $table.symptomsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get operationId => $composableBuilder(
+    column: $table.operationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalCycleDayLogsTableAnnotationComposer
+    extends Composer<_$LocalDatabase, $LocalCycleDayLogsTable> {
+  $$LocalCycleDayLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get logDate =>
+      $composableBuilder(column: $table.logDate, builder: (column) => column);
+
+  GeneratedColumn<String> get diaryText =>
+      $composableBuilder(column: $table.diaryText, builder: (column) => column);
+
+  GeneratedColumn<String> get flowLevel =>
+      $composableBuilder(column: $table.flowLevel, builder: (column) => column);
+
+  GeneratedColumn<String> get symptomsJson => $composableBuilder(
+    column: $table.symptomsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get operationId => $composableBuilder(
+    column: $table.operationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalCycleDayLogsTableTableManager
+    extends
+        RootTableManager<
+          _$LocalDatabase,
+          $LocalCycleDayLogsTable,
+          LocalCycleDayLog,
+          $$LocalCycleDayLogsTableFilterComposer,
+          $$LocalCycleDayLogsTableOrderingComposer,
+          $$LocalCycleDayLogsTableAnnotationComposer,
+          $$LocalCycleDayLogsTableCreateCompanionBuilder,
+          $$LocalCycleDayLogsTableUpdateCompanionBuilder,
+          (
+            LocalCycleDayLog,
+            BaseReferences<
+              _$LocalDatabase,
+              $LocalCycleDayLogsTable,
+              LocalCycleDayLog
+            >,
+          ),
+          LocalCycleDayLog,
+          PrefetchHooks Function()
+        > {
+  $$LocalCycleDayLogsTableTableManager(
+    _$LocalDatabase db,
+    $LocalCycleDayLogsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalCycleDayLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalCycleDayLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalCycleDayLogsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> logDate = const Value.absent(),
+                Value<String> diaryText = const Value.absent(),
+                Value<String> flowLevel = const Value.absent(),
+                Value<String> symptomsJson = const Value.absent(),
+                Value<String> operationId = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalCycleDayLogsCompanion(
+                logDate: logDate,
+                diaryText: diaryText,
+                flowLevel: flowLevel,
+                symptomsJson: symptomsJson,
+                operationId: operationId,
+                isDirty: isDirty,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String logDate,
+                Value<String> diaryText = const Value.absent(),
+                Value<String> flowLevel = const Value.absent(),
+                Value<String> symptomsJson = const Value.absent(),
+                Value<String> operationId = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalCycleDayLogsCompanion.insert(
+                logDate: logDate,
+                diaryText: diaryText,
+                flowLevel: flowLevel,
+                symptomsJson: symptomsJson,
+                operationId: operationId,
+                isDirty: isDirty,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalCycleDayLogsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LocalDatabase,
+      $LocalCycleDayLogsTable,
+      LocalCycleDayLog,
+      $$LocalCycleDayLogsTableFilterComposer,
+      $$LocalCycleDayLogsTableOrderingComposer,
+      $$LocalCycleDayLogsTableAnnotationComposer,
+      $$LocalCycleDayLogsTableCreateCompanionBuilder,
+      $$LocalCycleDayLogsTableUpdateCompanionBuilder,
+      (
+        LocalCycleDayLog,
+        BaseReferences<
+          _$LocalDatabase,
+          $LocalCycleDayLogsTable,
+          LocalCycleDayLog
+        >,
+      ),
+      LocalCycleDayLog,
+      PrefetchHooks Function()
+    >;
 
 class $LocalDatabaseManager {
   final _$LocalDatabase _db;
@@ -5183,4 +6719,8 @@ class $LocalDatabaseManager {
       $$LocalDailyAwardsTableTableManager(_db, _db.localDailyAwards);
   $$SyncOperationsTableTableManager get syncOperations =>
       $$SyncOperationsTableTableManager(_db, _db.syncOperations);
+  $$LocalCycleProfilesTableTableManager get localCycleProfiles =>
+      $$LocalCycleProfilesTableTableManager(_db, _db.localCycleProfiles);
+  $$LocalCycleDayLogsTableTableManager get localCycleDayLogs =>
+      $$LocalCycleDayLogsTableTableManager(_db, _db.localCycleDayLogs);
 }

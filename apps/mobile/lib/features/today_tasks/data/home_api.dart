@@ -66,11 +66,7 @@ class HomeApi {
 
     final response = await _dio.post<Map<String, dynamic>>(
       '/api/tasks/manage',
-      data: {
-        'operationId': operationId,
-        'action': action,
-        ...payload,
-      },
+      data: {'operationId': operationId, 'action': action, ...payload},
       options: Options(
         headers: {'Authorization': 'Bearer ${session.accessToken}'},
       ),

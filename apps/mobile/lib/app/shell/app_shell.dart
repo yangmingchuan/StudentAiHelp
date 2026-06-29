@@ -27,14 +27,14 @@ class AppShell extends StatelessWidget {
             label: '任务',
           ),
           NavigationDestination(
-            icon: Icon(Icons.calculate_outlined),
-            selectedIcon: Icon(Icons.calculate_rounded),
-            label: '数学',
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month_rounded),
+            label: '妈妈',
           ),
           NavigationDestination(
-            icon: Icon(Icons.translate_rounded),
-            selectedIcon: Icon(Icons.menu_book_rounded),
-            label: '英语',
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school_rounded),
+            label: '学习',
           ),
           NavigationDestination(
             icon: Icon(Icons.face_outlined),

@@ -87,9 +87,9 @@ class _TodoTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final textStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-      fontWeight: FontWeight.w800,
-    );
+    final textStyle = Theme.of(
+      context,
+    ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800);
 
     return Card(
       child: Padding(
@@ -145,10 +145,7 @@ class _EmptyTodos extends StatelessWidget {
               color: AppColors.blue.withValues(alpha: 0.9),
             ),
             const SizedBox(height: 12),
-            Text(
-              '还没有首页任务',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('还没有首页任务', style: Theme.of(context).textTheme.titleLarge),
           ],
         ),
       ),
@@ -253,10 +250,7 @@ class _TodoFormResult {
 }
 
 class _TodoFormDialog extends StatefulWidget {
-  const _TodoFormDialog({
-    required this.initialTitle,
-    required this.isEditing,
-  });
+  const _TodoFormDialog({required this.initialTitle, required this.isEditing});
 
   final String initialTitle;
   final bool isEditing;
@@ -296,10 +290,8 @@ class _TodoFormDialogState extends State<_TodoFormDialog> {
           child: const Text('取消'),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(
-            context,
-            _TodoFormResult(_titleController.text),
-          ),
+          onPressed: () =>
+              Navigator.pop(context, _TodoFormResult(_titleController.text)),
           child: const Text('保存'),
         ),
       ],

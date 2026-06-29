@@ -31,7 +31,10 @@ class HomeController extends AsyncNotifier<HomeSnapshot> {
   Future<void> clearTaskStatus(int taskId) async {
     final previous = state;
     state = await AsyncValue.guard(
-      () => _repository.setTaskStatus(taskId: taskId, nextStatus: TaskStatus.none),
+      () => _repository.setTaskStatus(
+        taskId: taskId,
+        nextStatus: TaskStatus.none,
+      ),
     );
     if (state.hasError && previous.hasValue) {
       state = previous;
@@ -53,6 +56,8 @@ class HomeController extends AsyncNotifier<HomeSnapshot> {
   }
 
   Future<void> moveTask(int oldIndex, int newIndex) async {
-    state = await AsyncValue.guard(() => _repository.moveTask(oldIndex, newIndex));
+    state = await AsyncValue.guard(
+      () => _repository.moveTask(oldIndex, newIndex),
+    );
   }
 }

@@ -6,6 +6,8 @@ import 'package:little_hero/features/auth/application/auth_controller.dart';
 import 'package:little_hero/features/auth/domain/auth_session.dart';
 import 'package:little_hero/features/mama_tools/application/cycle_controller.dart';
 import 'package:little_hero/features/mama_tools/domain/cycle_models.dart';
+import 'package:little_hero/features/medication/application/medication_controller.dart';
+import 'package:little_hero/features/medication/domain/medication_models.dart';
 import 'package:little_hero/features/today_tasks/application/home_controller.dart';
 import 'package:little_hero/features/today_tasks/domain/home_snapshot.dart';
 
@@ -120,8 +122,63 @@ class _TestCycleController extends CycleController {
   }
 }
 
+class _TestMedicationController extends MedicationController {
+  @override
+  Future<MedicationSnapshot> build() async {
+    final takenAt = DateTime(2026, 6, 30, 8, 30);
+    return MedicationSnapshot(
+      members: const [
+        MedicationMember(
+          id: 1,
+          name: '小勇士',
+          relation: '孩子',
+          ageNote: '6 岁',
+          allergyNote: '青霉素过敏',
+          conditionNote: '',
+        ),
+      ],
+      medicines: [
+        MedicineItem(
+          id: 1,
+          name: '退热滴剂',
+          specification: '100ml',
+          defaultDosage: '按医生说明',
+          storageLocation: '客厅药箱',
+          expiresOn: DateTime(2026, 7, 20),
+          stockNote: '剩半瓶',
+          usageNote: '发热备用',
+          expiryStatus: MedicineExpiryStatus.expiringSoon,
+        ),
+      ],
+      logs: [
+        MedicationLogEntry(
+          id: 1,
+          memberName: '小勇士',
+          medicineName: '退热滴剂',
+          takenAt: takenAt,
+          dosageText: '5ml',
+          reason: '发热',
+          note: '饭后',
+          nextReminderAt: DateTime(2026, 6, 30, 14, 30),
+        ),
+      ],
+      upcomingReminders: [
+        MedicationReminder(
+          memberName: '小勇士',
+          medicineName: '退热滴剂',
+          remindAt: DateTime(2026, 6, 30, 14, 30),
+          dosageText: '5ml',
+        ),
+      ],
+      todayLogCount: 1,
+      expiringSoonCount: 1,
+      expiredCount: 0,
+    );
+  }
+}
+
 void main() {
-  testWidgets('starts on tasks and opens mama and learning tabs', (
+  testWidgets('starts on tasks and opens mama and medication tabs', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -130,6 +187,9 @@ void main() {
           authControllerProvider.overrideWith(_SignedInAuthController.new),
           homeControllerProvider.overrideWith(_TestHomeController.new),
           cycleControllerProvider.overrideWith(_TestCycleController.new),
+          medicationControllerProvider.overrideWith(
+            _TestMedicationController.new,
+          ),
         ],
         child: const LittleHeroApp(),
       ),
@@ -145,7 +205,7 @@ void main() {
     expect(find.text('心心'), findsNothing);
     expect(find.text('任务'), findsOneWidget);
     expect(find.text('妈妈'), findsOneWidget);
-    expect(find.text('学习'), findsOneWidget);
+    expect(find.text('用药'), findsOneWidget);
     expect(find.text('我的'), findsOneWidget);
 
     await tester.tap(find.text('妈妈'));
@@ -156,11 +216,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('经期健康分析'), findsOneWidget);
 
-    await tester.tap(find.text('学习'));
+    await tester.tap(find.text('用药'));
     await tester.pumpAndSettle();
-    expect(find.text('数学小岛'), findsOneWidget);
-    expect(find.text('英语森林'), findsOneWidget);
-    expect(find.text('内容准备中'), findsNWidgets(2));
+    expect(find.text('家庭药箱'), findsOneWidget);
+    expect(find.text('家庭药品'), findsOneWidget);
+    expect(find.text('退热滴剂'), findsOneWidget);
+    await tester.tap(find.text('记录'));
+    await tester.pumpAndSettle();
+    expect(find.text('用药记录'), findsOneWidget);
+    expect(find.text('剂量：5ml'), findsOneWidget);
 
     await tester.tap(find.text('我的'));
     await tester.pumpAndSettle();
@@ -174,7 +238,7 @@ void main() {
     expect(find.text('自己刷牙'), findsOneWidget);
     expect(find.text('任务'), findsNothing);
     expect(find.text('妈妈'), findsNothing);
-    expect(find.text('学习'), findsNothing);
+    expect(find.text('用药'), findsNothing);
     expect(find.text('我的'), findsNothing);
 
     await tester.tap(find.byTooltip('新增 Todo'));

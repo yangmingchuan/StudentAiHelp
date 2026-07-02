@@ -6,12 +6,12 @@ import 'package:little_hero/features/auth/presentation/auth_splash_page.dart';
 import 'package:little_hero/features/auth/presentation/login_page.dart';
 import 'package:little_hero/features/auth/presentation/register_page.dart';
 import 'package:little_hero/features/child_profile/presentation/profile_page.dart';
-import 'package:little_hero/features/learning_hub/presentation/learning_hub_page.dart';
 import 'package:little_hero/features/mama_tools/presentation/cycle_advice_page.dart';
 import 'package:little_hero/features/mama_tools/presentation/cycle_analysis_page.dart';
 import 'package:little_hero/features/mama_tools/presentation/cycle_diary_page.dart';
 import 'package:little_hero/features/mama_tools/presentation/cycle_settings_page.dart';
 import 'package:little_hero/features/mama_tools/presentation/mama_tools_page.dart';
+import 'package:little_hero/features/medication/presentation/medication_home_page.dart';
 import 'package:little_hero/features/today_tasks/presentation/today_tasks_page.dart';
 import 'package:little_hero/features/todos/presentation/todo_management_page.dart';
 
@@ -95,8 +95,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/learning',
-                builder: (context, state) => const LearningHubPage(),
+                path: '/medication',
+                builder: (context, state) => const MedicationHomePage(),
               ),
             ],
           ),

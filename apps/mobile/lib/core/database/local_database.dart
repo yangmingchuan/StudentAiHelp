@@ -135,6 +135,44 @@ class LocalCycleDayLogs extends Table {
   Set<Column<Object>> get primaryKey => {logDate};
 }
 
+class LocalMedicationMembers extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get relation => text().withDefault(const Constant('家庭成员'))();
+  TextColumn get ageNote => text().withDefault(const Constant(''))();
+  TextColumn get allergyNote => text().withDefault(const Constant(''))();
+  TextColumn get conditionNote => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class LocalMedicines extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get specification => text().withDefault(const Constant(''))();
+  TextColumn get defaultDosage => text().withDefault(const Constant(''))();
+  TextColumn get storageLocation => text().withDefault(const Constant(''))();
+  TextColumn get expiresOn => text().nullable()();
+  TextColumn get stockNote => text().withDefault(const Constant(''))();
+  TextColumn get usageNote => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class LocalMedicationLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get memberId => integer().nullable()();
+  IntColumn get medicineId => integer().nullable()();
+  TextColumn get memberName => text()();
+  TextColumn get medicineName => text()();
+  DateTimeColumn get takenAt => dateTime()();
+  TextColumn get dosageText => text().withDefault(const Constant(''))();
+  TextColumn get reason => text().withDefault(const Constant(''))();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  DateTimeColumn get nextReminderAt => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 @DriftDatabase(
   tables: [
     LocalChildren,
@@ -146,6 +184,9 @@ class LocalCycleDayLogs extends Table {
     SyncOperations,
     LocalCycleProfiles,
     LocalCycleDayLogs,
+    LocalMedicationMembers,
+    LocalMedicines,
+    LocalMedicationLogs,
   ],
 )
 class LocalDatabase extends _$LocalDatabase {
@@ -161,6 +202,11 @@ class LocalDatabase extends _$LocalDatabase {
       if (from < 3) {
         await migrator.createTable(localCycleProfiles);
         await migrator.createTable(localCycleDayLogs);
+      }
+      if (from < 4) {
+        await migrator.createTable(localMedicationMembers);
+        await migrator.createTable(localMedicines);
+        await migrator.createTable(localMedicationLogs);
       }
     },
   );

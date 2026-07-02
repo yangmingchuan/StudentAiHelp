@@ -32,9 +32,9 @@ class AppShell extends StatelessWidget {
             label: '妈妈',
           ),
           NavigationDestination(
-            icon: Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school_rounded),
-            label: '学习',
+            icon: Icon(Icons.medication_outlined),
+            selectedIcon: Icon(Icons.medication_rounded),
+            label: '用药',
           ),
           NavigationDestination(
             icon: Icon(Icons.face_outlined),

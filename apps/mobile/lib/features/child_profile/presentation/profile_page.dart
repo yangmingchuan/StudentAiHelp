@@ -19,6 +19,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   int _tapCount = 0;
   DateTime? _firstTapAt;
   bool _parentAreaVisible = false;
+  bool _isSigningOut = false;
 
   @override
   void initState() {
@@ -61,7 +62,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     );
 
     if (confirmed == true) {
-      await ref.read(authControllerProvider.notifier).signOut();
+      if (!context.mounted) return;
+      setState(() => _isSigningOut = true);
+      try {
+        await ref.read(authControllerProvider.notifier).signOut();
+      } catch (error) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      } finally {
+        if (mounted) {
+          setState(() => _isSigningOut = false);
+        }
+      }
     }
   }
 
@@ -123,13 +137,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             onTap: () => context.push('/todos'),
           ),
         ),
+        const SizedBox(height: 18),
+        Card(
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 10,
+            ),
+            leading: const Icon(Icons.account_circle_rounded),
+            title: Text('当前账号 $username'),
+            subtitle: const Text('退出后将回到登录页'),
+            trailing: _isSigningOut
+                ? const SizedBox.square(
+                    dimension: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.4),
+                  )
+                : const Icon(Icons.logout_rounded),
+            enabled: session != null && !_isSigningOut,
+            onTap: session == null || _isSigningOut
+                ? null
+                : () => _confirmSignOut(context, ref),
+          ),
+        ),
         if (_parentAreaVisible) ...[
           const SizedBox(height: 18),
           homeState.maybeWhen(
             data: (snapshot) => _ParentAreaCard(
               username: username,
               snapshot: snapshot,
-              isSigningOut: authState.isLoading,
+              isSigningOut: _isSigningOut,
               canSignOut: session != null,
               onExit: () => setState(() => _parentAreaVisible = false),
               onSignOut: session == null

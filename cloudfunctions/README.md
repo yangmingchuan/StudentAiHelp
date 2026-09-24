@@ -20,7 +20,7 @@ npm test
 npm audit --omit=dev
 ```
 
-接口只创建 CloudBase Auth 用户，不保存手机号归属已验证状态，也不记录密码。注册成功后由客户端调用 Auth `/auth/v1/signin` 建立会话。
+接口只创建 CloudBase Auth 用户，不保存手机号归属已验证状态，也不记录密码。注册成功后由客户端调用 Auth `/auth/v1/token`（`grant_type=password`）建立会话。
 
 若配置了以下环境变量，注册成功后会调用业务 API 自动初始化默认家长资料、孩子档案、孩子设置和默认任务：
 

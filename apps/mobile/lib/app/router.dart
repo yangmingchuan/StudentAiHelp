@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:little_hero/app/shell/app_shell.dart';
@@ -16,11 +17,14 @@ import 'package:little_hero/features/today_tasks/presentation/today_tasks_page.d
 import 'package:little_hero/features/todos/presentation/todo_management_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authControllerProvider);
+  final refresh = ValueNotifier<int>(0);
+  ref.listen(authControllerProvider, (_, _) => refresh.value++);
 
-  return GoRouter(
+  final router = GoRouter(
+    refreshListenable: refresh,
     initialLocation: '/splash',
     redirect: (context, state) {
+      final authState = ref.read(authControllerProvider);
       final isLoading = authState.isLoading;
       final isSignedIn = authState.asData?.value != null;
       final isAuthRoute =
@@ -51,6 +55,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/todos',
         builder: (context, state) => const TodoManagementPage(),
+      ),
+      GoRoute(
+        path: '/profile/history',
+        builder: (context, state) => const GrowthHistoryPage(),
       ),
       GoRoute(
         path: '/mama/settings',
@@ -112,4 +120,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.onDispose(() {
+    router.dispose();
+    refresh.dispose();
+  });
+  return router;
 });

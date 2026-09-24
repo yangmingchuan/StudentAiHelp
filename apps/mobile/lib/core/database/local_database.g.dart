@@ -5567,6 +5567,40 @@ class $LocalMedicationLogsTable extends LocalMedicationLogs
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _voidedAtMeta = const VerificationMeta(
+    'voidedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> voidedAt = GeneratedColumn<DateTime>(
+    'voided_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _voidReasonMeta = const VerificationMeta(
+    'voidReason',
+  );
+  @override
+  late final GeneratedColumn<String> voidReason = GeneratedColumn<String>(
+    'void_reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _correctedByLogIdMeta = const VerificationMeta(
+    'correctedByLogId',
+  );
+  @override
+  late final GeneratedColumn<int> correctedByLogId = GeneratedColumn<int>(
+    'corrected_by_log_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -5591,6 +5625,9 @@ class $LocalMedicationLogsTable extends LocalMedicationLogs
     reason,
     note,
     nextReminderAt,
+    voidedAt,
+    voidReason,
+    correctedByLogId,
     createdAt,
   ];
   @override
@@ -5674,6 +5711,27 @@ class $LocalMedicationLogsTable extends LocalMedicationLogs
         ),
       );
     }
+    if (data.containsKey('voided_at')) {
+      context.handle(
+        _voidedAtMeta,
+        voidedAt.isAcceptableOrUnknown(data['voided_at']!, _voidedAtMeta),
+      );
+    }
+    if (data.containsKey('void_reason')) {
+      context.handle(
+        _voidReasonMeta,
+        voidReason.isAcceptableOrUnknown(data['void_reason']!, _voidReasonMeta),
+      );
+    }
+    if (data.containsKey('corrected_by_log_id')) {
+      context.handle(
+        _correctedByLogIdMeta,
+        correctedByLogId.isAcceptableOrUnknown(
+          data['corrected_by_log_id']!,
+          _correctedByLogIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -5729,6 +5787,18 @@ class $LocalMedicationLogsTable extends LocalMedicationLogs
         DriftSqlType.dateTime,
         data['${effectivePrefix}next_reminder_at'],
       ),
+      voidedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}voided_at'],
+      ),
+      voidReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}void_reason'],
+      )!,
+      correctedByLogId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}corrected_by_log_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -5754,6 +5824,9 @@ class LocalMedicationLog extends DataClass
   final String reason;
   final String note;
   final DateTime? nextReminderAt;
+  final DateTime? voidedAt;
+  final String voidReason;
+  final int? correctedByLogId;
   final DateTime createdAt;
   const LocalMedicationLog({
     required this.id,
@@ -5766,6 +5839,9 @@ class LocalMedicationLog extends DataClass
     required this.reason,
     required this.note,
     this.nextReminderAt,
+    this.voidedAt,
+    required this.voidReason,
+    this.correctedByLogId,
     required this.createdAt,
   });
   @override
@@ -5786,6 +5862,13 @@ class LocalMedicationLog extends DataClass
     map['note'] = Variable<String>(note);
     if (!nullToAbsent || nextReminderAt != null) {
       map['next_reminder_at'] = Variable<DateTime>(nextReminderAt);
+    }
+    if (!nullToAbsent || voidedAt != null) {
+      map['voided_at'] = Variable<DateTime>(voidedAt);
+    }
+    map['void_reason'] = Variable<String>(voidReason);
+    if (!nullToAbsent || correctedByLogId != null) {
+      map['corrected_by_log_id'] = Variable<int>(correctedByLogId);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -5809,6 +5892,13 @@ class LocalMedicationLog extends DataClass
       nextReminderAt: nextReminderAt == null && nullToAbsent
           ? const Value.absent()
           : Value(nextReminderAt),
+      voidedAt: voidedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(voidedAt),
+      voidReason: Value(voidReason),
+      correctedByLogId: correctedByLogId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(correctedByLogId),
       createdAt: Value(createdAt),
     );
   }
@@ -5829,6 +5919,9 @@ class LocalMedicationLog extends DataClass
       reason: serializer.fromJson<String>(json['reason']),
       note: serializer.fromJson<String>(json['note']),
       nextReminderAt: serializer.fromJson<DateTime?>(json['nextReminderAt']),
+      voidedAt: serializer.fromJson<DateTime?>(json['voidedAt']),
+      voidReason: serializer.fromJson<String>(json['voidReason']),
+      correctedByLogId: serializer.fromJson<int?>(json['correctedByLogId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -5846,6 +5939,9 @@ class LocalMedicationLog extends DataClass
       'reason': serializer.toJson<String>(reason),
       'note': serializer.toJson<String>(note),
       'nextReminderAt': serializer.toJson<DateTime?>(nextReminderAt),
+      'voidedAt': serializer.toJson<DateTime?>(voidedAt),
+      'voidReason': serializer.toJson<String>(voidReason),
+      'correctedByLogId': serializer.toJson<int?>(correctedByLogId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -5861,6 +5957,9 @@ class LocalMedicationLog extends DataClass
     String? reason,
     String? note,
     Value<DateTime?> nextReminderAt = const Value.absent(),
+    Value<DateTime?> voidedAt = const Value.absent(),
+    String? voidReason,
+    Value<int?> correctedByLogId = const Value.absent(),
     DateTime? createdAt,
   }) => LocalMedicationLog(
     id: id ?? this.id,
@@ -5875,6 +5974,11 @@ class LocalMedicationLog extends DataClass
     nextReminderAt: nextReminderAt.present
         ? nextReminderAt.value
         : this.nextReminderAt,
+    voidedAt: voidedAt.present ? voidedAt.value : this.voidedAt,
+    voidReason: voidReason ?? this.voidReason,
+    correctedByLogId: correctedByLogId.present
+        ? correctedByLogId.value
+        : this.correctedByLogId,
     createdAt: createdAt ?? this.createdAt,
   );
   LocalMedicationLog copyWithCompanion(LocalMedicationLogsCompanion data) {
@@ -5899,6 +6003,13 @@ class LocalMedicationLog extends DataClass
       nextReminderAt: data.nextReminderAt.present
           ? data.nextReminderAt.value
           : this.nextReminderAt,
+      voidedAt: data.voidedAt.present ? data.voidedAt.value : this.voidedAt,
+      voidReason: data.voidReason.present
+          ? data.voidReason.value
+          : this.voidReason,
+      correctedByLogId: data.correctedByLogId.present
+          ? data.correctedByLogId.value
+          : this.correctedByLogId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -5916,6 +6027,9 @@ class LocalMedicationLog extends DataClass
           ..write('reason: $reason, ')
           ..write('note: $note, ')
           ..write('nextReminderAt: $nextReminderAt, ')
+          ..write('voidedAt: $voidedAt, ')
+          ..write('voidReason: $voidReason, ')
+          ..write('correctedByLogId: $correctedByLogId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -5933,6 +6047,9 @@ class LocalMedicationLog extends DataClass
     reason,
     note,
     nextReminderAt,
+    voidedAt,
+    voidReason,
+    correctedByLogId,
     createdAt,
   );
   @override
@@ -5949,6 +6066,9 @@ class LocalMedicationLog extends DataClass
           other.reason == this.reason &&
           other.note == this.note &&
           other.nextReminderAt == this.nextReminderAt &&
+          other.voidedAt == this.voidedAt &&
+          other.voidReason == this.voidReason &&
+          other.correctedByLogId == this.correctedByLogId &&
           other.createdAt == this.createdAt);
 }
 
@@ -5963,6 +6083,9 @@ class LocalMedicationLogsCompanion extends UpdateCompanion<LocalMedicationLog> {
   final Value<String> reason;
   final Value<String> note;
   final Value<DateTime?> nextReminderAt;
+  final Value<DateTime?> voidedAt;
+  final Value<String> voidReason;
+  final Value<int?> correctedByLogId;
   final Value<DateTime> createdAt;
   const LocalMedicationLogsCompanion({
     this.id = const Value.absent(),
@@ -5975,6 +6098,9 @@ class LocalMedicationLogsCompanion extends UpdateCompanion<LocalMedicationLog> {
     this.reason = const Value.absent(),
     this.note = const Value.absent(),
     this.nextReminderAt = const Value.absent(),
+    this.voidedAt = const Value.absent(),
+    this.voidReason = const Value.absent(),
+    this.correctedByLogId = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   LocalMedicationLogsCompanion.insert({
@@ -5988,6 +6114,9 @@ class LocalMedicationLogsCompanion extends UpdateCompanion<LocalMedicationLog> {
     this.reason = const Value.absent(),
     this.note = const Value.absent(),
     this.nextReminderAt = const Value.absent(),
+    this.voidedAt = const Value.absent(),
+    this.voidReason = const Value.absent(),
+    this.correctedByLogId = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : memberName = Value(memberName),
        medicineName = Value(medicineName),
@@ -6003,6 +6132,9 @@ class LocalMedicationLogsCompanion extends UpdateCompanion<LocalMedicationLog> {
     Expression<String>? reason,
     Expression<String>? note,
     Expression<DateTime>? nextReminderAt,
+    Expression<DateTime>? voidedAt,
+    Expression<String>? voidReason,
+    Expression<int>? correctedByLogId,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -6016,6 +6148,9 @@ class LocalMedicationLogsCompanion extends UpdateCompanion<LocalMedicationLog> {
       if (reason != null) 'reason': reason,
       if (note != null) 'note': note,
       if (nextReminderAt != null) 'next_reminder_at': nextReminderAt,
+      if (voidedAt != null) 'voided_at': voidedAt,
+      if (voidReason != null) 'void_reason': voidReason,
+      if (correctedByLogId != null) 'corrected_by_log_id': correctedByLogId,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -6031,6 +6166,9 @@ class LocalMedicationLogsCompanion extends UpdateCompanion<LocalMedicationLog> {
     Value<String>? reason,
     Value<String>? note,
     Value<DateTime?>? nextReminderAt,
+    Value<DateTime?>? voidedAt,
+    Value<String>? voidReason,
+    Value<int?>? correctedByLogId,
     Value<DateTime>? createdAt,
   }) {
     return LocalMedicationLogsCompanion(
@@ -6044,6 +6182,9 @@ class LocalMedicationLogsCompanion extends UpdateCompanion<LocalMedicationLog> {
       reason: reason ?? this.reason,
       note: note ?? this.note,
       nextReminderAt: nextReminderAt ?? this.nextReminderAt,
+      voidedAt: voidedAt ?? this.voidedAt,
+      voidReason: voidReason ?? this.voidReason,
+      correctedByLogId: correctedByLogId ?? this.correctedByLogId,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -6081,6 +6222,15 @@ class LocalMedicationLogsCompanion extends UpdateCompanion<LocalMedicationLog> {
     if (nextReminderAt.present) {
       map['next_reminder_at'] = Variable<DateTime>(nextReminderAt.value);
     }
+    if (voidedAt.present) {
+      map['voided_at'] = Variable<DateTime>(voidedAt.value);
+    }
+    if (voidReason.present) {
+      map['void_reason'] = Variable<String>(voidReason.value);
+    }
+    if (correctedByLogId.present) {
+      map['corrected_by_log_id'] = Variable<int>(correctedByLogId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -6100,7 +6250,723 @@ class LocalMedicationLogsCompanion extends UpdateCompanion<LocalMedicationLog> {
           ..write('reason: $reason, ')
           ..write('note: $note, ')
           ..write('nextReminderAt: $nextReminderAt, ')
+          ..write('voidedAt: $voidedAt, ')
+          ..write('voidReason: $voidReason, ')
+          ..write('correctedByLogId: $correctedByLogId, ')
           ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalMedicationRemindersTable extends LocalMedicationReminders
+    with TableInfo<$LocalMedicationRemindersTable, LocalMedicationReminder> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalMedicationRemindersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<int> memberId = GeneratedColumn<int>(
+    'member_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _medicineIdMeta = const VerificationMeta(
+    'medicineId',
+  );
+  @override
+  late final GeneratedColumn<int> medicineId = GeneratedColumn<int>(
+    'medicine_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceLogIdMeta = const VerificationMeta(
+    'sourceLogId',
+  );
+  @override
+  late final GeneratedColumn<int> sourceLogId = GeneratedColumn<int>(
+    'source_log_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _memberNameMeta = const VerificationMeta(
+    'memberName',
+  );
+  @override
+  late final GeneratedColumn<String> memberName = GeneratedColumn<String>(
+    'member_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _medicineNameMeta = const VerificationMeta(
+    'medicineName',
+  );
+  @override
+  late final GeneratedColumn<String> medicineName = GeneratedColumn<String>(
+    'medicine_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _remindAtMeta = const VerificationMeta(
+    'remindAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> remindAt = GeneratedColumn<DateTime>(
+    'remind_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dosageTextMeta = const VerificationMeta(
+    'dosageText',
+  );
+  @override
+  late final GeneratedColumn<String> dosageText = GeneratedColumn<String>(
+    'dosage_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('scheduled'),
+  );
+  static const VerificationMeta _resolvedAtMeta = const VerificationMeta(
+    'resolvedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> resolvedAt = GeneratedColumn<DateTime>(
+    'resolved_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    memberId,
+    medicineId,
+    sourceLogId,
+    memberName,
+    medicineName,
+    remindAt,
+    dosageText,
+    status,
+    resolvedAt,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_medication_reminders';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalMedicationReminder> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    }
+    if (data.containsKey('medicine_id')) {
+      context.handle(
+        _medicineIdMeta,
+        medicineId.isAcceptableOrUnknown(data['medicine_id']!, _medicineIdMeta),
+      );
+    }
+    if (data.containsKey('source_log_id')) {
+      context.handle(
+        _sourceLogIdMeta,
+        sourceLogId.isAcceptableOrUnknown(
+          data['source_log_id']!,
+          _sourceLogIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('member_name')) {
+      context.handle(
+        _memberNameMeta,
+        memberName.isAcceptableOrUnknown(data['member_name']!, _memberNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_memberNameMeta);
+    }
+    if (data.containsKey('medicine_name')) {
+      context.handle(
+        _medicineNameMeta,
+        medicineName.isAcceptableOrUnknown(
+          data['medicine_name']!,
+          _medicineNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_medicineNameMeta);
+    }
+    if (data.containsKey('remind_at')) {
+      context.handle(
+        _remindAtMeta,
+        remindAt.isAcceptableOrUnknown(data['remind_at']!, _remindAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_remindAtMeta);
+    }
+    if (data.containsKey('dosage_text')) {
+      context.handle(
+        _dosageTextMeta,
+        dosageText.isAcceptableOrUnknown(data['dosage_text']!, _dosageTextMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('resolved_at')) {
+      context.handle(
+        _resolvedAtMeta,
+        resolvedAt.isAcceptableOrUnknown(data['resolved_at']!, _resolvedAtMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalMedicationReminder map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalMedicationReminder(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}member_id'],
+      ),
+      medicineId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}medicine_id'],
+      ),
+      sourceLogId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_log_id'],
+      ),
+      memberName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}member_name'],
+      )!,
+      medicineName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}medicine_name'],
+      )!,
+      remindAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}remind_at'],
+      )!,
+      dosageText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dosage_text'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      resolvedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}resolved_at'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalMedicationRemindersTable createAlias(String alias) {
+    return $LocalMedicationRemindersTable(attachedDatabase, alias);
+  }
+}
+
+class LocalMedicationReminder extends DataClass
+    implements Insertable<LocalMedicationReminder> {
+  final int id;
+  final int? memberId;
+  final int? medicineId;
+  final int? sourceLogId;
+  final String memberName;
+  final String medicineName;
+  final DateTime remindAt;
+  final String dosageText;
+  final String status;
+  final DateTime? resolvedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const LocalMedicationReminder({
+    required this.id,
+    this.memberId,
+    this.medicineId,
+    this.sourceLogId,
+    required this.memberName,
+    required this.medicineName,
+    required this.remindAt,
+    required this.dosageText,
+    required this.status,
+    this.resolvedAt,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || memberId != null) {
+      map['member_id'] = Variable<int>(memberId);
+    }
+    if (!nullToAbsent || medicineId != null) {
+      map['medicine_id'] = Variable<int>(medicineId);
+    }
+    if (!nullToAbsent || sourceLogId != null) {
+      map['source_log_id'] = Variable<int>(sourceLogId);
+    }
+    map['member_name'] = Variable<String>(memberName);
+    map['medicine_name'] = Variable<String>(medicineName);
+    map['remind_at'] = Variable<DateTime>(remindAt);
+    map['dosage_text'] = Variable<String>(dosageText);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || resolvedAt != null) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalMedicationRemindersCompanion toCompanion(bool nullToAbsent) {
+    return LocalMedicationRemindersCompanion(
+      id: Value(id),
+      memberId: memberId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(memberId),
+      medicineId: medicineId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(medicineId),
+      sourceLogId: sourceLogId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceLogId),
+      memberName: Value(memberName),
+      medicineName: Value(medicineName),
+      remindAt: Value(remindAt),
+      dosageText: Value(dosageText),
+      status: Value(status),
+      resolvedAt: resolvedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resolvedAt),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalMedicationReminder.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalMedicationReminder(
+      id: serializer.fromJson<int>(json['id']),
+      memberId: serializer.fromJson<int?>(json['memberId']),
+      medicineId: serializer.fromJson<int?>(json['medicineId']),
+      sourceLogId: serializer.fromJson<int?>(json['sourceLogId']),
+      memberName: serializer.fromJson<String>(json['memberName']),
+      medicineName: serializer.fromJson<String>(json['medicineName']),
+      remindAt: serializer.fromJson<DateTime>(json['remindAt']),
+      dosageText: serializer.fromJson<String>(json['dosageText']),
+      status: serializer.fromJson<String>(json['status']),
+      resolvedAt: serializer.fromJson<DateTime?>(json['resolvedAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'memberId': serializer.toJson<int?>(memberId),
+      'medicineId': serializer.toJson<int?>(medicineId),
+      'sourceLogId': serializer.toJson<int?>(sourceLogId),
+      'memberName': serializer.toJson<String>(memberName),
+      'medicineName': serializer.toJson<String>(medicineName),
+      'remindAt': serializer.toJson<DateTime>(remindAt),
+      'dosageText': serializer.toJson<String>(dosageText),
+      'status': serializer.toJson<String>(status),
+      'resolvedAt': serializer.toJson<DateTime?>(resolvedAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalMedicationReminder copyWith({
+    int? id,
+    Value<int?> memberId = const Value.absent(),
+    Value<int?> medicineId = const Value.absent(),
+    Value<int?> sourceLogId = const Value.absent(),
+    String? memberName,
+    String? medicineName,
+    DateTime? remindAt,
+    String? dosageText,
+    String? status,
+    Value<DateTime?> resolvedAt = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => LocalMedicationReminder(
+    id: id ?? this.id,
+    memberId: memberId.present ? memberId.value : this.memberId,
+    medicineId: medicineId.present ? medicineId.value : this.medicineId,
+    sourceLogId: sourceLogId.present ? sourceLogId.value : this.sourceLogId,
+    memberName: memberName ?? this.memberName,
+    medicineName: medicineName ?? this.medicineName,
+    remindAt: remindAt ?? this.remindAt,
+    dosageText: dosageText ?? this.dosageText,
+    status: status ?? this.status,
+    resolvedAt: resolvedAt.present ? resolvedAt.value : this.resolvedAt,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  LocalMedicationReminder copyWithCompanion(
+    LocalMedicationRemindersCompanion data,
+  ) {
+    return LocalMedicationReminder(
+      id: data.id.present ? data.id.value : this.id,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      medicineId: data.medicineId.present
+          ? data.medicineId.value
+          : this.medicineId,
+      sourceLogId: data.sourceLogId.present
+          ? data.sourceLogId.value
+          : this.sourceLogId,
+      memberName: data.memberName.present
+          ? data.memberName.value
+          : this.memberName,
+      medicineName: data.medicineName.present
+          ? data.medicineName.value
+          : this.medicineName,
+      remindAt: data.remindAt.present ? data.remindAt.value : this.remindAt,
+      dosageText: data.dosageText.present
+          ? data.dosageText.value
+          : this.dosageText,
+      status: data.status.present ? data.status.value : this.status,
+      resolvedAt: data.resolvedAt.present
+          ? data.resolvedAt.value
+          : this.resolvedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalMedicationReminder(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('medicineId: $medicineId, ')
+          ..write('sourceLogId: $sourceLogId, ')
+          ..write('memberName: $memberName, ')
+          ..write('medicineName: $medicineName, ')
+          ..write('remindAt: $remindAt, ')
+          ..write('dosageText: $dosageText, ')
+          ..write('status: $status, ')
+          ..write('resolvedAt: $resolvedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    memberId,
+    medicineId,
+    sourceLogId,
+    memberName,
+    medicineName,
+    remindAt,
+    dosageText,
+    status,
+    resolvedAt,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalMedicationReminder &&
+          other.id == this.id &&
+          other.memberId == this.memberId &&
+          other.medicineId == this.medicineId &&
+          other.sourceLogId == this.sourceLogId &&
+          other.memberName == this.memberName &&
+          other.medicineName == this.medicineName &&
+          other.remindAt == this.remindAt &&
+          other.dosageText == this.dosageText &&
+          other.status == this.status &&
+          other.resolvedAt == this.resolvedAt &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalMedicationRemindersCompanion
+    extends UpdateCompanion<LocalMedicationReminder> {
+  final Value<int> id;
+  final Value<int?> memberId;
+  final Value<int?> medicineId;
+  final Value<int?> sourceLogId;
+  final Value<String> memberName;
+  final Value<String> medicineName;
+  final Value<DateTime> remindAt;
+  final Value<String> dosageText;
+  final Value<String> status;
+  final Value<DateTime?> resolvedAt;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const LocalMedicationRemindersCompanion({
+    this.id = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.medicineId = const Value.absent(),
+    this.sourceLogId = const Value.absent(),
+    this.memberName = const Value.absent(),
+    this.medicineName = const Value.absent(),
+    this.remindAt = const Value.absent(),
+    this.dosageText = const Value.absent(),
+    this.status = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  LocalMedicationRemindersCompanion.insert({
+    this.id = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.medicineId = const Value.absent(),
+    this.sourceLogId = const Value.absent(),
+    required String memberName,
+    required String medicineName,
+    required DateTime remindAt,
+    this.dosageText = const Value.absent(),
+    this.status = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  }) : memberName = Value(memberName),
+       medicineName = Value(medicineName),
+       remindAt = Value(remindAt);
+  static Insertable<LocalMedicationReminder> custom({
+    Expression<int>? id,
+    Expression<int>? memberId,
+    Expression<int>? medicineId,
+    Expression<int>? sourceLogId,
+    Expression<String>? memberName,
+    Expression<String>? medicineName,
+    Expression<DateTime>? remindAt,
+    Expression<String>? dosageText,
+    Expression<String>? status,
+    Expression<DateTime>? resolvedAt,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (memberId != null) 'member_id': memberId,
+      if (medicineId != null) 'medicine_id': medicineId,
+      if (sourceLogId != null) 'source_log_id': sourceLogId,
+      if (memberName != null) 'member_name': memberName,
+      if (medicineName != null) 'medicine_name': medicineName,
+      if (remindAt != null) 'remind_at': remindAt,
+      if (dosageText != null) 'dosage_text': dosageText,
+      if (status != null) 'status': status,
+      if (resolvedAt != null) 'resolved_at': resolvedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  LocalMedicationRemindersCompanion copyWith({
+    Value<int>? id,
+    Value<int?>? memberId,
+    Value<int?>? medicineId,
+    Value<int?>? sourceLogId,
+    Value<String>? memberName,
+    Value<String>? medicineName,
+    Value<DateTime>? remindAt,
+    Value<String>? dosageText,
+    Value<String>? status,
+    Value<DateTime?>? resolvedAt,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return LocalMedicationRemindersCompanion(
+      id: id ?? this.id,
+      memberId: memberId ?? this.memberId,
+      medicineId: medicineId ?? this.medicineId,
+      sourceLogId: sourceLogId ?? this.sourceLogId,
+      memberName: memberName ?? this.memberName,
+      medicineName: medicineName ?? this.medicineName,
+      remindAt: remindAt ?? this.remindAt,
+      dosageText: dosageText ?? this.dosageText,
+      status: status ?? this.status,
+      resolvedAt: resolvedAt ?? this.resolvedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (medicineId.present) {
+      map['medicine_id'] = Variable<int>(medicineId.value);
+    }
+    if (sourceLogId.present) {
+      map['source_log_id'] = Variable<int>(sourceLogId.value);
+    }
+    if (memberName.present) {
+      map['member_name'] = Variable<String>(memberName.value);
+    }
+    if (medicineName.present) {
+      map['medicine_name'] = Variable<String>(medicineName.value);
+    }
+    if (remindAt.present) {
+      map['remind_at'] = Variable<DateTime>(remindAt.value);
+    }
+    if (dosageText.present) {
+      map['dosage_text'] = Variable<String>(dosageText.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (resolvedAt.present) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalMedicationRemindersCompanion(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('medicineId: $medicineId, ')
+          ..write('sourceLogId: $sourceLogId, ')
+          ..write('memberName: $memberName, ')
+          ..write('medicineName: $medicineName, ')
+          ..write('remindAt: $remindAt, ')
+          ..write('dosageText: $dosageText, ')
+          ..write('status: $status, ')
+          ..write('resolvedAt: $resolvedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
@@ -6131,6 +6997,8 @@ abstract class _$LocalDatabase extends GeneratedDatabase {
   late final $LocalMedicinesTable localMedicines = $LocalMedicinesTable(this);
   late final $LocalMedicationLogsTable localMedicationLogs =
       $LocalMedicationLogsTable(this);
+  late final $LocalMedicationRemindersTable localMedicationReminders =
+      $LocalMedicationRemindersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6148,6 +7016,7 @@ abstract class _$LocalDatabase extends GeneratedDatabase {
     localMedicationMembers,
     localMedicines,
     localMedicationLogs,
+    localMedicationReminders,
   ];
 }
 
@@ -9053,6 +9922,9 @@ typedef $$LocalMedicationLogsTableCreateCompanionBuilder =
       Value<String> reason,
       Value<String> note,
       Value<DateTime?> nextReminderAt,
+      Value<DateTime?> voidedAt,
+      Value<String> voidReason,
+      Value<int?> correctedByLogId,
       Value<DateTime> createdAt,
     });
 typedef $$LocalMedicationLogsTableUpdateCompanionBuilder =
@@ -9067,6 +9939,9 @@ typedef $$LocalMedicationLogsTableUpdateCompanionBuilder =
       Value<String> reason,
       Value<String> note,
       Value<DateTime?> nextReminderAt,
+      Value<DateTime?> voidedAt,
+      Value<String> voidReason,
+      Value<int?> correctedByLogId,
       Value<DateTime> createdAt,
     });
 
@@ -9126,6 +10001,21 @@ class $$LocalMedicationLogsTableFilterComposer
 
   ColumnFilters<DateTime> get nextReminderAt => $composableBuilder(
     column: $table.nextReminderAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get voidedAt => $composableBuilder(
+    column: $table.voidedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get correctedByLogId => $composableBuilder(
+    column: $table.correctedByLogId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9194,6 +10084,21 @@ class $$LocalMedicationLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get voidedAt => $composableBuilder(
+    column: $table.voidedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get correctedByLogId => $composableBuilder(
+    column: $table.correctedByLogId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -9246,6 +10151,19 @@ class $$LocalMedicationLogsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get nextReminderAt => $composableBuilder(
     column: $table.nextReminderAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get voidedAt =>
+      $composableBuilder(column: $table.voidedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get correctedByLogId => $composableBuilder(
+    column: $table.correctedByLogId,
     builder: (column) => column,
   );
 
@@ -9306,6 +10224,9 @@ class $$LocalMedicationLogsTableTableManager
                 Value<String> reason = const Value.absent(),
                 Value<String> note = const Value.absent(),
                 Value<DateTime?> nextReminderAt = const Value.absent(),
+                Value<DateTime?> voidedAt = const Value.absent(),
+                Value<String> voidReason = const Value.absent(),
+                Value<int?> correctedByLogId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => LocalMedicationLogsCompanion(
                 id: id,
@@ -9318,6 +10239,9 @@ class $$LocalMedicationLogsTableTableManager
                 reason: reason,
                 note: note,
                 nextReminderAt: nextReminderAt,
+                voidedAt: voidedAt,
+                voidReason: voidReason,
+                correctedByLogId: correctedByLogId,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -9332,6 +10256,9 @@ class $$LocalMedicationLogsTableTableManager
                 Value<String> reason = const Value.absent(),
                 Value<String> note = const Value.absent(),
                 Value<DateTime?> nextReminderAt = const Value.absent(),
+                Value<DateTime?> voidedAt = const Value.absent(),
+                Value<String> voidReason = const Value.absent(),
+                Value<int?> correctedByLogId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => LocalMedicationLogsCompanion.insert(
                 id: id,
@@ -9344,6 +10271,9 @@ class $$LocalMedicationLogsTableTableManager
                 reason: reason,
                 note: note,
                 nextReminderAt: nextReminderAt,
+                voidedAt: voidedAt,
+                voidReason: voidReason,
+                correctedByLogId: correctedByLogId,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -9373,6 +10303,364 @@ typedef $$LocalMedicationLogsTableProcessedTableManager =
         >,
       ),
       LocalMedicationLog,
+      PrefetchHooks Function()
+    >;
+typedef $$LocalMedicationRemindersTableCreateCompanionBuilder =
+    LocalMedicationRemindersCompanion Function({
+      Value<int> id,
+      Value<int?> memberId,
+      Value<int?> medicineId,
+      Value<int?> sourceLogId,
+      required String memberName,
+      required String medicineName,
+      required DateTime remindAt,
+      Value<String> dosageText,
+      Value<String> status,
+      Value<DateTime?> resolvedAt,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+typedef $$LocalMedicationRemindersTableUpdateCompanionBuilder =
+    LocalMedicationRemindersCompanion Function({
+      Value<int> id,
+      Value<int?> memberId,
+      Value<int?> medicineId,
+      Value<int?> sourceLogId,
+      Value<String> memberName,
+      Value<String> medicineName,
+      Value<DateTime> remindAt,
+      Value<String> dosageText,
+      Value<String> status,
+      Value<DateTime?> resolvedAt,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$LocalMedicationRemindersTableFilterComposer
+    extends Composer<_$LocalDatabase, $LocalMedicationRemindersTable> {
+  $$LocalMedicationRemindersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get medicineId => $composableBuilder(
+    column: $table.medicineId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourceLogId => $composableBuilder(
+    column: $table.sourceLogId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memberName => $composableBuilder(
+    column: $table.memberName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get medicineName => $composableBuilder(
+    column: $table.medicineName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get remindAt => $composableBuilder(
+    column: $table.remindAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dosageText => $composableBuilder(
+    column: $table.dosageText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalMedicationRemindersTableOrderingComposer
+    extends Composer<_$LocalDatabase, $LocalMedicationRemindersTable> {
+  $$LocalMedicationRemindersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get medicineId => $composableBuilder(
+    column: $table.medicineId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceLogId => $composableBuilder(
+    column: $table.sourceLogId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get memberName => $composableBuilder(
+    column: $table.memberName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get medicineName => $composableBuilder(
+    column: $table.medicineName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get remindAt => $composableBuilder(
+    column: $table.remindAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dosageText => $composableBuilder(
+    column: $table.dosageText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalMedicationRemindersTableAnnotationComposer
+    extends Composer<_$LocalDatabase, $LocalMedicationRemindersTable> {
+  $$LocalMedicationRemindersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get memberId =>
+      $composableBuilder(column: $table.memberId, builder: (column) => column);
+
+  GeneratedColumn<int> get medicineId => $composableBuilder(
+    column: $table.medicineId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sourceLogId => $composableBuilder(
+    column: $table.sourceLogId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get memberName => $composableBuilder(
+    column: $table.memberName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get medicineName => $composableBuilder(
+    column: $table.medicineName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get remindAt =>
+      $composableBuilder(column: $table.remindAt, builder: (column) => column);
+
+  GeneratedColumn<String> get dosageText => $composableBuilder(
+    column: $table.dosageText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalMedicationRemindersTableTableManager
+    extends
+        RootTableManager<
+          _$LocalDatabase,
+          $LocalMedicationRemindersTable,
+          LocalMedicationReminder,
+          $$LocalMedicationRemindersTableFilterComposer,
+          $$LocalMedicationRemindersTableOrderingComposer,
+          $$LocalMedicationRemindersTableAnnotationComposer,
+          $$LocalMedicationRemindersTableCreateCompanionBuilder,
+          $$LocalMedicationRemindersTableUpdateCompanionBuilder,
+          (
+            LocalMedicationReminder,
+            BaseReferences<
+              _$LocalDatabase,
+              $LocalMedicationRemindersTable,
+              LocalMedicationReminder
+            >,
+          ),
+          LocalMedicationReminder,
+          PrefetchHooks Function()
+        > {
+  $$LocalMedicationRemindersTableTableManager(
+    _$LocalDatabase db,
+    $LocalMedicationRemindersTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalMedicationRemindersTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$LocalMedicationRemindersTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LocalMedicationRemindersTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> memberId = const Value.absent(),
+                Value<int?> medicineId = const Value.absent(),
+                Value<int?> sourceLogId = const Value.absent(),
+                Value<String> memberName = const Value.absent(),
+                Value<String> medicineName = const Value.absent(),
+                Value<DateTime> remindAt = const Value.absent(),
+                Value<String> dosageText = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> resolvedAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => LocalMedicationRemindersCompanion(
+                id: id,
+                memberId: memberId,
+                medicineId: medicineId,
+                sourceLogId: sourceLogId,
+                memberName: memberName,
+                medicineName: medicineName,
+                remindAt: remindAt,
+                dosageText: dosageText,
+                status: status,
+                resolvedAt: resolvedAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> memberId = const Value.absent(),
+                Value<int?> medicineId = const Value.absent(),
+                Value<int?> sourceLogId = const Value.absent(),
+                required String memberName,
+                required String medicineName,
+                required DateTime remindAt,
+                Value<String> dosageText = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> resolvedAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => LocalMedicationRemindersCompanion.insert(
+                id: id,
+                memberId: memberId,
+                medicineId: medicineId,
+                sourceLogId: sourceLogId,
+                memberName: memberName,
+                medicineName: medicineName,
+                remindAt: remindAt,
+                dosageText: dosageText,
+                status: status,
+                resolvedAt: resolvedAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalMedicationRemindersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LocalDatabase,
+      $LocalMedicationRemindersTable,
+      LocalMedicationReminder,
+      $$LocalMedicationRemindersTableFilterComposer,
+      $$LocalMedicationRemindersTableOrderingComposer,
+      $$LocalMedicationRemindersTableAnnotationComposer,
+      $$LocalMedicationRemindersTableCreateCompanionBuilder,
+      $$LocalMedicationRemindersTableUpdateCompanionBuilder,
+      (
+        LocalMedicationReminder,
+        BaseReferences<
+          _$LocalDatabase,
+          $LocalMedicationRemindersTable,
+          LocalMedicationReminder
+        >,
+      ),
+      LocalMedicationReminder,
       PrefetchHooks Function()
     >;
 
@@ -9406,4 +10694,9 @@ class $LocalDatabaseManager {
       $$LocalMedicinesTableTableManager(_db, _db.localMedicines);
   $$LocalMedicationLogsTableTableManager get localMedicationLogs =>
       $$LocalMedicationLogsTableTableManager(_db, _db.localMedicationLogs);
+  $$LocalMedicationRemindersTableTableManager get localMedicationReminders =>
+      $$LocalMedicationRemindersTableTableManager(
+        _db,
+        _db.localMedicationReminders,
+      );
 }

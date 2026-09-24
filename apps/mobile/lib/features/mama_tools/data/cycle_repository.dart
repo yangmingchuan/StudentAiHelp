@@ -1,426 +1,361 @@
 import 'dart:convert';
-import 'dart:math';
-
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:little_hero/core/database/local_database.dart';
+import 'package:little_hero/core/security/sensitive_field_cipher.dart';
 import 'package:little_hero/core/sync/operation_id_factory.dart';
 import 'package:little_hero/features/mama_tools/domain/cycle_models.dart';
 
-final cycleRepositoryProvider = Provider<CycleRepository>((ref) {
-  return CycleRepository(
+final cycleRepositoryProvider = Provider<CycleRepository>(
+  (ref) => CycleRepository(
     ref.watch(localDatabaseProvider),
     ref.watch(operationIdFactoryProvider),
-  );
-});
+    ref.watch(sensitiveFieldCipherProvider),
+  ),
+);
 
 class CycleRepository {
-  const CycleRepository(this._db, this._operationIdFactory);
-
+  const CycleRepository(this._db, this._operationIdFactory, [this._cipher]);
   final LocalDatabase _db;
   final OperationIdFactory _operationIdFactory;
+  final SensitiveFieldCipher? _cipher;
 
   Future<CycleSnapshot> load({
     required DateTime visibleMonth,
     required DateTime selectedDate,
   }) async {
     await _ensureProfileRow();
-    final profileRow = await _profileRow();
-    final profile = _profileFromRow(profileRow);
-    final today = _dateOnly(DateTime.now());
-    final normalizedMonth = DateTime(visibleMonth.year, visibleMonth.month);
-    final normalizedSelected = _dateOnly(selectedDate);
-
-    if (profile == null) {
-      final selectedDay = CycleDayInfo(
-        date: normalizedSelected,
-        cycleDay: 0,
-        phase: CyclePhase.setup,
-        tags: const ['待设置'],
-        fertilityProbability: 0,
-        summary: '先填写最近经期、持续天数和生日，日历会开始预测。',
-        advice: '经期预测仅用于生活提醒，不能作为医学、避孕或妊娠判断依据。',
-        diaryText: '',
-        hasDiary: false,
-      );
-      return CycleSnapshot(
-        needsSetup: true,
-        profile: null,
-        today: today,
-        visibleMonth: normalizedMonth,
-        selectedDate: normalizedSelected,
-        calendarDays: _calendarDays(
-          visibleMonth: normalizedMonth,
-          selectedDate: normalizedSelected,
-          today: today,
-          profile: null,
-          logsByDate: const {},
-        ),
-        selectedDay: selectedDay,
-        healthScore: 0,
-        dailyAdvice: selectedDay.advice,
-      );
-    }
-
-    final logs = await _logsAroundMonth(normalizedMonth);
-    final logsByDate = {for (final log in logs) log.logDate: log};
-    final selectedLog = logsByDate[_formatDate(normalizedSelected)];
+    final profile = await _loadProfileSummary();
+    final today = cycleDateOnly(DateTime.now());
+    final month = DateTime(visibleMonth.year, visibleMonth.month);
+    final selected = cycleDateOnly(selectedDate);
+    final logs = await (_db.select(
+      _db.localCycleDayLogs,
+    )..orderBy([(t) => OrderingTerm.desc(t.logDate)])).get();
+    final byDate = {for (final log in logs) log.logDate: await _readLog(log)};
     final selectedDay = _dayInfo(
-      normalizedSelected,
+      selected,
       profile,
-      selectedLog?.diaryText ?? '',
+      byDate[cycleDateKey(selected)],
+      today,
     );
-
+    // Calendar constructors keep date arithmetic correct across DST transitions.
+    final start = DateTime(month.year, month.month, 1 - month.weekday % 7);
     return CycleSnapshot(
-      needsSetup: false,
+      needsSetup: profile == null,
       profile: profile,
       today: today,
-      visibleMonth: normalizedMonth,
-      selectedDate: normalizedSelected,
-      calendarDays: _calendarDays(
-        visibleMonth: normalizedMonth,
-        selectedDate: normalizedSelected,
-        today: today,
-        profile: profile,
-        logsByDate: logsByDate,
-      ),
+      visibleMonth: month,
+      selectedDate: selected,
+      calendarDays: [
+        for (var i = 0; i < 42; i++)
+          () {
+            final date = DateTime(start.year, start.month, start.day + i);
+            return CycleCalendarDay(
+              date: date,
+              isInVisibleMonth: date.month == month.month,
+              isToday: date == today,
+              isSelected: date == selected,
+              info: _dayInfo(date, profile, byDate[cycleDateKey(date)], today),
+            );
+          }(),
+      ],
       selectedDay: selectedDay,
-      healthScore: _healthScore(profile, logs),
       dailyAdvice: selectedDay.advice,
+      records: [
+        for (final log in logs)
+          _dayInfo(
+            DateTime.parse(log.logDate),
+            profile,
+            byDate[log.logDate],
+            today,
+          ),
+      ].where((day) => day.hasRecord).toList(),
     );
   }
 
-  Future<void> saveSetup(CycleProfileDraft draft) {
-    return saveSettings(draft);
-  }
+  Future<CycleDayInfo> loadDay(DateTime date) async =>
+      (await load(visibleMonth: date, selectedDate: date)).selectedDay;
+  Future<void> saveSetup(CycleProfileDraft draft) => saveSettings(draft);
 
   Future<void> saveSettings(CycleProfileDraft draft) async {
     _validateDraft(draft);
-    final operationId = _operationIdFactory.create();
-    await _db
-        .into(_db.localCycleProfiles)
-        .insertOnConflictUpdate(
-          LocalCycleProfilesCompanion.insert(
-            id: const Value(1),
-            lastPeriodStartDate: Value(_formatDate(draft.lastPeriodStartDate)),
-            periodLengthDays: Value(draft.periodLengthDays),
-            cycleLengthDays: Value(draft.cycleLengthDays),
-            birthDate: Value(_formatDate(draft.birthDate)),
-            isSetupComplete: const Value(true),
+    await _db.transaction(() async {
+      await _ensureProfileRow();
+      await (_db.update(
+        _db.localCycleProfiles,
+      )..where((t) => t.id.equals(1))).write(
+        LocalCycleProfilesCompanion(
+          lastPeriodStartDate: Value(
+            await _encrypt(cycleDateKey(draft.lastPeriodStartDate)),
+          ),
+          periodLengthDays: Value(draft.periodLengthDays),
+          cycleLengthDays: Value(draft.cycleLengthDays),
+          birthDate: draft.birthDate == null
+              ? const Value.absent()
+              : Value(await _encrypt(cycleDateKey(draft.birthDate!))),
+          isSetupComplete: const Value(true),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    });
+  }
+
+  Future<void> saveRecord({
+    required DateTime date,
+    required CycleFlow flow,
+    required List<String> symptoms,
+    required String diaryText,
+    bool startsPeriod = false,
+  }) async {
+    final day = cycleDateOnly(date);
+    if (day.isAfter(cycleDateOnly(DateTime.now()))) {
+      throw ArgumentError('还不能记录未来的身体情况，请选择今天或之前的日期');
+    }
+    if (diaryText.trim().length > 500) throw ArgumentError('备注请控制在 500 字以内');
+    if (startsPeriod && !flow.isBleeding) throw ArgumentError('经期开始日需要填写经量');
+    await _db.transaction(() async {
+      await _ensureProfileRow();
+      final profile = await _loadProfileSummary();
+      if (profile == null) throw StateError('请先完成经期设置');
+      if (startsPeriod && day.isBefore(profile.lastPeriodStartDate)) {
+        throw ArgumentError('补记历史经期请只填写经量；最近开始日期可在周期设置中修正');
+      }
+      await _db
+          .into(_db.localCycleDayLogs)
+          .insertOnConflictUpdate(
+            LocalCycleDayLogsCompanion.insert(
+              logDate: cycleDateKey(day),
+              diaryText: Value(await _encrypt(diaryText.trim())),
+              flowLevel: Value(flow.value),
+              symptomsJson: Value(
+                await _encrypt(jsonEncode(symptoms.toSet().toList())),
+              ),
+              operationId: Value(_operationIdFactory.create()),
+              // Records remain local; no cloud sync is offered by this feature.
+              isDirty: const Value(false),
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
+      if (startsPeriod) {
+        await (_db.update(
+          _db.localCycleProfiles,
+        )..where((t) => t.id.equals(1))).write(
+          LocalCycleProfilesCompanion(
+            lastPeriodStartDate: Value(await _encrypt(cycleDateKey(day))),
             updatedAt: Value(DateTime.now()),
           ),
         );
-    await _enqueueOperation(
-      operationId: operationId,
-      operationType: 'cycle_profile_upsert',
-      entityId: '1',
-      payload: {
-        'lastPeriodStartDate': _formatDate(draft.lastPeriodStartDate),
-        'periodLengthDays': draft.periodLengthDays,
-        'cycleLengthDays': draft.cycleLengthDays,
-        'birthDate': _formatDate(draft.birthDate),
-      },
-    );
+      }
+    });
   }
 
   Future<void> saveDiary({
     required DateTime date,
     required String diaryText,
   }) async {
-    final operationId = _operationIdFactory.create();
-    final normalized = _dateOnly(date);
-    await _db
-        .into(_db.localCycleDayLogs)
-        .insertOnConflictUpdate(
-          LocalCycleDayLogsCompanion.insert(
-            logDate: _formatDate(normalized),
-            diaryText: Value(diaryText.trim()),
-            operationId: Value(operationId),
-            isDirty: const Value(true),
-            updatedAt: Value(DateTime.now()),
-          ),
-        );
-    await _enqueueOperation(
-      operationId: operationId,
-      operationType: 'cycle_day_log_upsert',
-      entityId: _formatDate(normalized),
-      payload: {
-        'logDate': _formatDate(normalized),
-        'diaryText': diaryText.trim(),
-      },
+    final day = await loadDay(date);
+    await saveRecord(
+      date: date,
+      flow: day.flow,
+      symptoms: day.symptoms,
+      diaryText: diaryText,
     );
   }
 
-  Future<LocalCycleProfile> _profileRow() {
-    return (_db.select(
-      _db.localCycleProfiles,
-    )..where((table) => table.id.equals(1))).getSingle();
-  }
-
+  Future<LocalCycleProfile> _profileRow() => (_db.select(
+    _db.localCycleProfiles,
+  )..where((t) => t.id.equals(1))).getSingle();
   Future<void> _ensureProfileRow() async {
-    final existing = await (_db.select(
-      _db.localCycleProfiles,
-    )..where((table) => table.id.equals(1))).getSingleOrNull();
-    if (existing != null) {
-      return;
-    }
     await _db
         .into(_db.localCycleProfiles)
-        .insert(LocalCycleProfilesCompanion.insert(id: const Value(1)));
-  }
-
-  CycleProfileSummary? _profileFromRow(LocalCycleProfile row) {
-    if (!row.isSetupComplete ||
-        row.lastPeriodStartDate == null ||
-        row.birthDate == null) {
-      return null;
-    }
-    return CycleProfileSummary(
-      lastPeriodStartDate: DateTime.parse(row.lastPeriodStartDate!),
-      periodLengthDays: row.periodLengthDays,
-      cycleLengthDays: row.cycleLengthDays,
-      birthDate: DateTime.parse(row.birthDate!),
-      cloudSyncEnabled: row.cloudSyncEnabled,
-    );
-  }
-
-  Future<List<LocalCycleDayLog>> _logsAroundMonth(DateTime visibleMonth) {
-    final start = DateTime(visibleMonth.year, visibleMonth.month - 1, 1);
-    final end = DateTime(visibleMonth.year, visibleMonth.month + 2, 0);
-    return (_db.select(_db.localCycleDayLogs)..where(
-          (table) =>
-              table.logDate.isBiggerOrEqualValue(_formatDate(start)) &
-              table.logDate.isSmallerOrEqualValue(_formatDate(end)),
-        ))
-        .get();
-  }
-
-  List<CycleCalendarDay> _calendarDays({
-    required DateTime visibleMonth,
-    required DateTime selectedDate,
-    required DateTime today,
-    required CycleProfileSummary? profile,
-    required Map<String, LocalCycleDayLog> logsByDate,
-  }) {
-    final first = DateTime(visibleMonth.year, visibleMonth.month);
-    final gridStart = first.subtract(Duration(days: first.weekday % 7));
-    return [
-      for (var index = 0; index < 42; index += 1)
-        () {
-          final date = _dateOnly(gridStart.add(Duration(days: index)));
-          final log = logsByDate[_formatDate(date)];
-          final info = profile == null
-              ? CycleDayInfo(
-                  date: date,
-                  cycleDay: 0,
-                  phase: CyclePhase.setup,
-                  tags: const [],
-                  fertilityProbability: 0,
-                  summary: '待设置',
-                  advice: '完成妈妈工具设置后显示预测。',
-                  diaryText: log?.diaryText ?? '',
-                  hasDiary: (log?.diaryText.trim().isNotEmpty ?? false),
-                )
-              : _dayInfo(date, profile, log?.diaryText ?? '');
-          return CycleCalendarDay(
-            date: date,
-            isInVisibleMonth: date.month == visibleMonth.month,
-            isToday: _isSameDay(date, today),
-            isSelected: _isSameDay(date, selectedDate),
-            info: info,
-          );
-        }(),
-    ];
+        .insert(
+          LocalCycleProfilesCompanion.insert(id: const Value(1)),
+          mode: InsertMode.insertOrIgnore,
+        );
   }
 
   CycleDayInfo _dayInfo(
     DateTime date,
-    CycleProfileSummary profile,
-    String diaryText,
+    CycleProfileSummary? profile,
+    _CycleLogContent? log,
+    DateTime today,
   ) {
-    final normalized = _dateOnly(date);
-    final cycleDay = _cycleDay(normalized, profile);
-    final ovulationDay = max(1, profile.cycleLengthDays - 14);
-    final periodEnd = profile.periodLengthDays;
-    final fertileStart = max(periodEnd + 1, ovulationDay - 5);
-    final fertileEnd = min(profile.cycleLengthDays, ovulationDay + 1);
-
-    final isActualPeriod =
-        !normalized.isBefore(profile.lastPeriodStartDate) &&
-        normalized.isBefore(
-          profile.lastPeriodStartDate.add(
-            Duration(days: profile.periodLengthDays),
-          ),
-        );
-    final isPeriodWindow = cycleDay <= profile.periodLengthDays;
-    final isOvulation = cycleDay == ovulationDay;
-    final isFertile = cycleDay >= fertileStart && cycleDay <= fertileEnd;
-    final isSlim =
-        cycleDay > periodEnd &&
-        cycleDay < fertileStart &&
-        fertileStart > periodEnd;
-    final isLuteal =
-        cycleDay > fertileEnd && cycleDay <= profile.cycleLengthDays;
-
-    final phase = isActualPeriod
+    final flow = CycleFlow.parse(log?.flowLevel ?? 'none');
+    final diary = log?.diaryText ?? '';
+    List<String> symptoms;
+    try {
+      symptoms = (jsonDecode(log?.symptomsJson ?? '[]') as List)
+          .whereType<String>()
+          .toList();
+    } on FormatException {
+      symptoms = [];
+    } on TypeError {
+      symptoms = [];
+    }
+    final elapsed = profile == null
+        ? -1
+        : cycleDaysBetween(date, profile.lastPeriodStartDate);
+    final isStart =
+        profile != null && date == cycleDateOnly(profile.lastPeriodStartDate);
+    final predicted =
+        profile != null &&
+        elapsed >= 0 &&
+        !date.isBefore(today) &&
+        elapsed % profile.cycleLengthDays < profile.periodLengthDays;
+    final phase = profile == null
+        ? CyclePhase.setup
+        : flow.isBleeding || (isStart && flow == CycleFlow.unlogged)
         ? CyclePhase.menstrual
-        : isPeriodWindow
+        : flow == CycleFlow.noBleeding
+        ? CyclePhase.normal
+        : predicted
         ? CyclePhase.predictedPeriod
-        : isOvulation
-        ? CyclePhase.ovulation
-        : isFertile
-        ? CyclePhase.fertile
-        : isSlim
-        ? CyclePhase.slim
-        : isLuteal
-        ? CyclePhase.luteal
         : CyclePhase.normal;
-
-    final tags = <String>{
-      phase.label,
-      if (isFertile && !isOvulation) '易孕日',
-      if (isOvulation) '排卵期',
-      if (isSlim) '易瘦期',
-      if (isLuteal) '黄体期',
-    }.toList();
-
     return CycleDayInfo(
-      date: normalized,
-      cycleDay: cycleDay,
+      date: date,
+      cycleDay: elapsed < 0 ? 0 : elapsed + 1,
       phase: phase,
-      tags: tags,
-      fertilityProbability: _fertilityProbability(
-        cycleDay: cycleDay,
-        ovulationDay: ovulationDay,
-        fertileStart: fertileStart,
-        fertileEnd: fertileEnd,
-        isPeriodWindow: isPeriodWindow,
-      ),
-      summary: _summary(phase, cycleDay),
-      advice: _advice(phase),
-      diaryText: diaryText,
-      hasDiary: diaryText.trim().isNotEmpty,
+      tags: [phase.label],
+      flow: flow,
+      symptoms: symptoms,
+      summary: switch (phase) {
+        CyclePhase.setup => '先设置最近一次经期，开始记录自己的节奏',
+        CyclePhase.menstrual =>
+          flow.isBleeding ? '经期已记录 · ${flow.label}' : '经期开始日',
+        CyclePhase.predictedPeriod => '预计经期，实际日期可能变化',
+        _ => flow == CycleFlow.noBleeding ? '已记录无经血' : '留意今天的身体感受',
+      },
+      advice: phase == CyclePhase.menstrual
+          ? '按自己的舒适程度安排活动和休息，记录经量与不适，方便回顾。'
+          : phase == CyclePhase.predictedPeriod
+          ? '可以提前准备经期用品。预测基于你填写的日期和周期长度，实际日期可能不同。'
+          : '每天留一点时间照顾自己。经量、睡眠和心情的记录，有助于回顾变化。',
+      diaryText: diary,
+      hasDiary: diary.trim().isNotEmpty,
     );
   }
 
-  int _cycleDay(DateTime date, CycleProfileSummary profile) {
-    final diff = _dateOnly(
-      date,
-    ).difference(_dateOnly(profile.lastPeriodStartDate)).inDays;
-    final cycle = profile.cycleLengthDays;
-    return ((diff % cycle + cycle) % cycle) + 1;
-  }
-
-  double _fertilityProbability({
-    required int cycleDay,
-    required int ovulationDay,
-    required int fertileStart,
-    required int fertileEnd,
-    required bool isPeriodWindow,
-  }) {
-    if (isPeriodWindow) {
-      return 0;
-    }
-    if (cycleDay == ovulationDay) {
-      return 33;
-    }
-    if (cycleDay < fertileStart || cycleDay > fertileEnd) {
-      return cycleDay > ovulationDay ? 3 : 6;
-    }
-    final distance = (cycleDay - ovulationDay).abs();
-    return switch (distance) {
-      1 => 26,
-      2 => 18,
-      3 => 12,
-      4 => 8,
-      _ => 5,
-    };
-  }
-
-  String _summary(CyclePhase phase, int cycleDay) {
-    return switch (phase) {
-      CyclePhase.menstrual => '月经期第$cycleDay天',
-      CyclePhase.predictedPeriod => '预测月经期第$cycleDay天',
-      CyclePhase.ovulation => '排卵期，易孕概率较高',
-      CyclePhase.fertile => '易孕日，请按自己的计划安排',
-      CyclePhase.slim => '易瘦期，适合轻量规律运动',
-      CyclePhase.luteal => '黄体期，注意睡眠和情绪波动',
-      CyclePhase.normal => '平稳期，保持规律作息',
-      CyclePhase.setup => '待设置',
-    };
-  }
-
-  String _advice(CyclePhase phase) {
-    return switch (phase) {
-      CyclePhase.menstrual => '多喝温水，注意保暖和休息。若疼痛或出血异常，请咨询医生。',
-      CyclePhase.predictedPeriod => '这天可能接近月经期，可以提前准备卫生用品并关注身体状态。',
-      CyclePhase.ovulation => '今天接近排卵日，易孕概率较高。预测仅供生活提醒，不作为避孕依据。',
-      CyclePhase.fertile => '处于易孕窗口，若有备孕或避孕计划，请使用更可靠的方法确认。',
-      CyclePhase.slim => '身体状态通常较轻快，可以安排舒缓运动和规律饮食。',
-      CyclePhase.luteal => '黄体期容易疲劳、浮肿或情绪波动，建议减少熬夜和高糖饮食。',
-      CyclePhase.normal => '保持睡眠、饮水和适度活动，继续观察身体变化。',
-      CyclePhase.setup => '完成基础设置后显示每日建议。',
-    };
-  }
-
-  int _healthScore(CycleProfileSummary profile, List<LocalCycleDayLog> logs) {
-    final lengthScore =
-        profile.periodLengthDays >= 3 && profile.periodLengthDays <= 7
-        ? 35
-        : 25;
-    final cycleScore =
-        profile.cycleLengthDays >= 24 && profile.cycleLengthDays <= 35
-        ? 35
-        : 24;
-    final diaryScore = min(
-      30,
-      logs.where((log) => log.diaryText.isNotEmpty).length * 6,
+  Future<CycleProfileSummary?> _loadProfileSummary() async {
+    final row = await _profileRow();
+    if (!row.isSetupComplete || row.lastPeriodStartDate == null) return null;
+    final lastPeriod = await _readAndMigrateProfileDate(
+      row.lastPeriodStartDate,
+      isLastPeriod: true,
     );
-    return (lengthScore + cycleScore + diaryScore).clamp(0, 100);
+    final birthDate = await _readAndMigrateProfileDate(
+      row.birthDate,
+      isLastPeriod: false,
+    );
+    final parsedLastPeriod = DateTime.tryParse(lastPeriod ?? '');
+    if (parsedLastPeriod == null) return null;
+    return CycleProfileSummary(
+      lastPeriodStartDate: parsedLastPeriod,
+      periodLengthDays: row.periodLengthDays,
+      cycleLengthDays: row.cycleLengthDays,
+      birthDate: DateTime.tryParse(birthDate ?? ''),
+      cloudSyncEnabled: row.cloudSyncEnabled,
+    );
   }
+
+  Future<String?> _readAndMigrateProfileDate(
+    String? value, {
+    required bool isLastPeriod,
+  }) async {
+    if (value == null) return null;
+    final clear = await _decrypt(value);
+    if (value.isNotEmpty && !_isProtected(value)) {
+      await (_db.update(
+        _db.localCycleProfiles,
+      )..where((t) => t.id.equals(1))).write(
+        LocalCycleProfilesCompanion(
+          lastPeriodStartDate: isLastPeriod
+              ? Value(await _encrypt(value))
+              : const Value.absent(),
+          birthDate: isLastPeriod
+              ? const Value.absent()
+              : Value(await _encrypt(value)),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    }
+    return clear;
+  }
+
+  Future<_CycleLogContent> _readLog(LocalCycleDayLog row) async {
+    final diary = await _decrypt(row.diaryText);
+    final symptomsJson = await _decrypt(row.symptomsJson);
+    if ((row.diaryText.isNotEmpty && !_isProtected(row.diaryText)) ||
+        (row.symptomsJson.isNotEmpty && !_isProtected(row.symptomsJson))) {
+      await (_db.update(
+        _db.localCycleDayLogs,
+      )..where((table) => table.logDate.equals(row.logDate))).write(
+        LocalCycleDayLogsCompanion(
+          diaryText: row.diaryText.isNotEmpty && !_isProtected(row.diaryText)
+              ? Value(await _encrypt(row.diaryText))
+              : const Value.absent(),
+          symptomsJson:
+              row.symptomsJson.isNotEmpty && !_isProtected(row.symptomsJson)
+              ? Value(await _encrypt(row.symptomsJson))
+              : const Value.absent(),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    }
+    return _CycleLogContent(
+      flowLevel: row.flowLevel,
+      diaryText: diary,
+      symptomsJson: symptomsJson,
+    );
+  }
+
+  Future<String> _encrypt(String value) async =>
+      _cipher == null ? value : _cipher.encrypt(value);
+
+  Future<String> _decrypt(String value) async =>
+      _cipher == null ? value : _cipher.decrypt(value);
+
+  bool _isProtected(String value) => _cipher?.isProtected(value) ?? true;
 
   void _validateDraft(CycleProfileDraft draft) {
-    if (draft.periodLengthDays < 2 || draft.periodLengthDays > 10) {
-      throw ArgumentError('月经持续天数建议填写 2-10 天');
+    if (draft.periodLengthDays < 1 || draft.periodLengthDays > 15) {
+      throw ArgumentError('经期天数请填写 1–15 天');
     }
-    if (draft.cycleLengthDays < 21 || draft.cycleLengthDays > 45) {
-      throw ArgumentError('月经周期长度建议填写 21-45 天');
+    if (draft.cycleLengthDays < 15 ||
+        draft.cycleLengthDays > 90 ||
+        draft.cycleLengthDays <= draft.periodLengthDays) {
+      throw ArgumentError('周期请填写 15–90 天，且长于经期天数');
     }
-    final today = _dateOnly(DateTime.now());
-    if (_dateOnly(draft.birthDate).isAfter(today)) {
+    final today = cycleDateOnly(DateTime.now());
+    if (cycleDateOnly(draft.lastPeriodStartDate).isAfter(today)) {
+      throw ArgumentError('最近一次经期开始不能晚于今天');
+    }
+    if (draft.birthDate != null &&
+        cycleDateOnly(draft.birthDate!).isAfter(today)) {
       throw ArgumentError('生日不能晚于今天');
     }
   }
-
-  Future<void> _enqueueOperation({
-    required String operationId,
-    required String operationType,
-    required String entityId,
-    required Map<String, Object?> payload,
-  }) {
-    return _db
-        .into(_db.syncOperations)
-        .insertOnConflictUpdate(
-          SyncOperationsCompanion.insert(
-            operationId: operationId,
-            operationType: operationType,
-            entityId: entityId,
-            payloadJson: jsonEncode(payload),
-          ),
-        );
-  }
 }
 
-DateTime _dateOnly(DateTime value) =>
-    DateTime(value.year, value.month, value.day);
+class _CycleLogContent {
+  const _CycleLogContent({
+    required this.flowLevel,
+    required this.diaryText,
+    required this.symptomsJson,
+  });
 
-bool _isSameDay(DateTime a, DateTime b) {
-  return a.year == b.year && a.month == b.month && a.day == b.day;
+  final String flowLevel;
+  final String diaryText;
+  final String symptomsJson;
 }
 
-String _formatDate(DateTime value) {
-  final date = _dateOnly(value);
-  return '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
-}
+DateTime cycleDateOnly(DateTime date) =>
+    DateTime(date.year, date.month, date.day);
+int cycleDaysBetween(DateTime a, DateTime b) => DateTime.utc(
+  a.year,
+  a.month,
+  a.day,
+).difference(DateTime.utc(b.year, b.month, b.day)).inDays;
+String cycleDateKey(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-'
+    '${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

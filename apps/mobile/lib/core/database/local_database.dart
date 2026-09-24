@@ -170,7 +170,25 @@ class LocalMedicationLogs extends Table {
   TextColumn get reason => text().withDefault(const Constant(''))();
   TextColumn get note => text().withDefault(const Constant(''))();
   DateTimeColumn get nextReminderAt => dateTime().nullable()();
+  DateTimeColumn get voidedAt => dateTime().nullable()();
+  TextColumn get voidReason => text().withDefault(const Constant(''))();
+  IntColumn get correctedByLogId => integer().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class LocalMedicationReminders extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get memberId => integer().nullable()();
+  IntColumn get medicineId => integer().nullable()();
+  IntColumn get sourceLogId => integer().nullable()();
+  TextColumn get memberName => text()();
+  TextColumn get medicineName => text()();
+  DateTimeColumn get remindAt => dateTime()();
+  TextColumn get dosageText => text().withDefault(const Constant(''))();
+  TextColumn get status => text().withDefault(const Constant('scheduled'))();
+  DateTimeColumn get resolvedAt => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 @DriftDatabase(
@@ -187,10 +205,13 @@ class LocalMedicationLogs extends Table {
     LocalMedicationMembers,
     LocalMedicines,
     LocalMedicationLogs,
+    LocalMedicationReminders,
   ],
 )
 class LocalDatabase extends _$LocalDatabase {
   LocalDatabase() : super(_openConnection());
+
+  LocalDatabase.forTesting(super.executor);
 
   @override
   int get schemaVersion => LocalDatabaseConfig.schemaVersion;
@@ -207,6 +228,26 @@ class LocalDatabase extends _$LocalDatabase {
         await migrator.createTable(localMedicationMembers);
         await migrator.createTable(localMedicines);
         await migrator.createTable(localMedicationLogs);
+      }
+      if (from < 5) {
+        await migrator.createTable(localMedicationReminders);
+        await customStatement('''
+          INSERT INTO local_medication_reminders
+            (member_id, medicine_id, source_log_id, member_name, medicine_name,
+             remind_at, dosage_text, status, created_at, updated_at)
+          SELECT member_id, medicine_id, id, member_name, medicine_name,
+                 next_reminder_at, dosage_text, 'scheduled', created_at, created_at
+          FROM local_medication_logs
+          WHERE next_reminder_at IS NOT NULL
+        ''');
+      }
+      if (from < 6) {
+        await migrator.addColumn(localMedicationLogs, localMedicationLogs.voidedAt);
+        await migrator.addColumn(localMedicationLogs, localMedicationLogs.voidReason);
+        await migrator.addColumn(
+          localMedicationLogs,
+          localMedicationLogs.correctedByLogId,
+        );
       }
     },
   );

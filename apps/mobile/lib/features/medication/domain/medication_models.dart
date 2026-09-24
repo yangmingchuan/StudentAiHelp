@@ -138,6 +138,9 @@ class MedicationLogEntry {
     required this.reason,
     required this.note,
     required this.nextReminderAt,
+    required this.voidedAt,
+    required this.voidReason,
+    required this.correctedByLogId,
   });
 
   final int id;
@@ -148,20 +151,54 @@ class MedicationLogEntry {
   final String reason;
   final String note;
   final DateTime? nextReminderAt;
+  final DateTime? voidedAt;
+  final String voidReason;
+  final int? correctedByLogId;
+
+  bool get isVoided => voidedAt != null;
 }
 
 class MedicationReminder {
   const MedicationReminder({
+    required this.id,
     required this.memberName,
     required this.medicineName,
     required this.remindAt,
     required this.dosageText,
+    required this.status,
+    this.sourceLogId,
   });
 
+  final int id;
   final String memberName;
   final String medicineName;
   final DateTime remindAt;
   final String dosageText;
+  final MedicationReminderStatus status;
+  final int? sourceLogId;
+}
+
+class MedicationLogMutation {
+  const MedicationLogMutation({
+    required this.reminder,
+    required this.canceledReminderIds,
+  });
+
+  final MedicationReminder? reminder;
+  final List<int> canceledReminderIds;
+}
+
+enum MedicationReminderStatus {
+  scheduled('scheduled'),
+  completed('completed'),
+  skipped('skipped'),
+  canceled('canceled');
+
+  const MedicationReminderStatus(this.value);
+  final String value;
+
+  static MedicationReminderStatus parse(String value) =>
+      values.firstWhere((item) => item.value == value, orElse: () => scheduled);
 }
 
 enum MedicineExpiryStatus { unknown, ok, expiringSoon, expired }

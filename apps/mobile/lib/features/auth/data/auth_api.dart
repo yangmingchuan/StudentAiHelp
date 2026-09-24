@@ -21,8 +21,12 @@ class AuthApi {
   }) async {
     try {
       final response = await _authDio.post<Map<String, dynamic>>(
-        '/auth/v1/signin',
-        data: {'username': username, 'password': password},
+        '/auth/v1/token',
+        data: {
+          'grant_type': 'password',
+          'username': username,
+          'password': password,
+        },
         options: Options(headers: {'x-device-id': deviceId}),
       );
       return _parseSession(response.data, username: username);
@@ -109,6 +113,13 @@ class AuthApi {
   }
 
   AuthException _mapError(DioException error) {
+    // A gateway failure is not evidence that the user's refresh token expired.
+    if ((error.response?.statusCode ?? 0) >= 500) {
+      return const AuthException(
+        'AUTH_SERVICE_UNAVAILABLE',
+        '登录服务暂时不可用，请稍后重试。',
+      );
+    }
     final data = error.response?.data;
     if (data is Map) {
       final code =
@@ -135,6 +146,7 @@ class AuthApi {
 
     if (error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.sendTimeout ||
         error.type == DioExceptionType.receiveTimeout) {
       return const AuthException('NETWORK_ERROR', '网络连接失败，请检查网络后重试。');
     }

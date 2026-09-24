@@ -26,14 +26,19 @@ abstract final class AppTheme {
         headlineMedium: TextStyle(
           color: AppColors.ink,
           fontSize: 28,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w400,
         ),
         titleLarge: TextStyle(
           color: AppColors.ink,
           fontSize: 22,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w400,
         ),
         bodyLarge: TextStyle(color: AppColors.ink, fontSize: 18, height: 1.4),
+        titleMedium: TextStyle(fontWeight: FontWeight.w400),
+        titleSmall: TextStyle(fontWeight: FontWeight.w400),
+        labelLarge: TextStyle(fontWeight: FontWeight.w400),
+        labelMedium: TextStyle(fontWeight: FontWeight.w400),
+        labelSmall: TextStyle(fontWeight: FontWeight.w400),
       ),
       cardTheme: const CardThemeData(
         elevation: 0,
@@ -53,7 +58,7 @@ abstract final class AppTheme {
                 ? AppColors.ink
                 : AppColors.ink.withValues(alpha: 0.6),
             fontSize: 14,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
           );
         }),
       ),

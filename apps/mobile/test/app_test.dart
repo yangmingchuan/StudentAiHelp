@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:little_hero/app/app.dart';
 import 'package:little_hero/features/auth/application/auth_controller.dart';
 import 'package:little_hero/features/auth/domain/auth_session.dart';
+import 'package:little_hero/features/child_profile/data/growth_history_repository.dart';
+import 'package:little_hero/features/child_profile/domain/growth_history.dart';
 import 'package:little_hero/features/mama_tools/application/cycle_controller.dart';
 import 'package:little_hero/features/mama_tools/domain/cycle_models.dart';
 import 'package:little_hero/features/medication/application/medication_controller.dart';
@@ -88,7 +90,6 @@ class _TestCycleController extends CycleController {
       cycleDay: 2,
       phase: CyclePhase.menstrual,
       tags: const ['月经期'],
-      fertilityProbability: 0,
       summary: '月经期第2天',
       advice: '多喝温水，注意保暖和休息。',
       diaryText: '',
@@ -116,7 +117,6 @@ class _TestCycleController extends CycleController {
         ),
       ],
       selectedDay: selectedDay,
-      healthScore: 94,
       dailyAdvice: selectedDay.advice,
     );
   }
@@ -160,14 +160,19 @@ class _TestMedicationController extends MedicationController {
           reason: '发热',
           note: '饭后',
           nextReminderAt: DateTime(2026, 6, 30, 14, 30),
+          voidedAt: null,
+          voidReason: '',
+          correctedByLogId: null,
         ),
       ],
       upcomingReminders: [
         MedicationReminder(
+          id: 1,
           memberName: '小勇士',
           medicineName: '退热滴剂',
           remindAt: DateTime(2026, 6, 30, 14, 30),
           dosageText: '5ml',
+          status: MedicationReminderStatus.scheduled,
         ),
       ],
       todayLogCount: 1,
@@ -175,6 +180,34 @@ class _TestMedicationController extends MedicationController {
       expiredCount: 0,
     );
   }
+}
+
+GrowthHistorySnapshot _testHistory() {
+  final today = DateTime.now();
+  final start = DateTime(today.year, today.month, today.day - 27);
+  return GrowthHistorySnapshot(
+    childId: 1,
+    days: [
+      for (var offset = 0; offset < 28; offset += 1)
+        GrowthHistoryDay(
+          date: start.add(Duration(days: offset)),
+          totalCount: 1,
+          doneCount: offset == 27 ? 1 : 0,
+          skippedCount: 0,
+          tasks: const [
+            GrowthHistoryTask(
+              id: 101,
+              name: '自己刷牙',
+              iconName: 'clean_hands_rounded',
+              status: TaskStatus.none,
+            ),
+          ],
+        ),
+    ],
+    totalTasks: 1,
+    currentStreak: 1,
+    bestStreak: 1,
+  );
 }
 
 void main() {
@@ -190,13 +223,31 @@ void main() {
           medicationControllerProvider.overrideWith(
             _TestMedicationController.new,
           ),
+          growthHistoryProvider.overrideWith((ref) async => _testHistory()),
         ],
         child: const LittleHeroApp(),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('小勇士，今天也要加油'), findsOneWidget);
+    expect(find.text('小勇士，今天也能做到！'), findsNothing);
+    expect(find.text('今日星星  0 / 1'), findsOneWidget);
+    final assetPaths = tester
+        .widgetList<Image>(find.byType(Image))
+        .map((image) => image.image)
+        .whereType<AssetImage>()
+        .map((asset) => asset.assetName)
+        .toList();
+    expect(assetPaths, contains('assets/task_icons/brush.png'));
+    final hour = DateTime.now().hour;
+    expect(
+      assetPaths,
+      contains(
+        hour >= 7 && hour < 17
+            ? 'assets/backgrounds/day_meadow.png'
+            : 'assets/backgrounds/night_moon.png',
+      ),
+    );
     expect(find.byTooltip('完成'), findsOneWidget);
     expect(find.byTooltip('清空'), findsNothing);
     expect(find.byTooltip('跳过'), findsNothing);
@@ -204,40 +255,65 @@ void main() {
     expect(find.text('勋章'), findsNothing);
     expect(find.text('心心'), findsNothing);
     expect(find.text('任务'), findsOneWidget);
-    expect(find.text('妈妈'), findsOneWidget);
+    expect(find.text('经期'), findsOneWidget);
     expect(find.text('用药'), findsOneWidget);
     expect(find.text('我的'), findsOneWidget);
 
-    await tester.tap(find.text('妈妈'));
+    // Check resolved text spans, including inherited Material label styles.
+    for (final richText in tester.widgetList<RichText>(find.byType(RichText))) {
+      void checkWeight(InlineSpan span, FontWeight inherited) {
+        final weight = span.style?.fontWeight ?? inherited;
+        expect(
+          weight.value,
+          lessThanOrEqualTo(FontWeight.w400.value),
+          reason: 'Homepage text must stay regular: ${span.toPlainText()}',
+        );
+        if (span is TextSpan) {
+          for (final child in span.children ?? <InlineSpan>[]) {
+            checkWeight(child, weight);
+          }
+        }
+      }
+
+      checkWeight(richText.text, FontWeight.w400);
+    }
+
+    await tester.tap(find.text('经期'));
     await tester.pumpAndSettle();
-    expect(find.text('月经期'), findsWidgets);
-    expect(find.text('2026年6月29日 详细说明'), findsOneWidget);
+    expect(find.text('经期手记'), findsOneWidget);
+    expect(find.text('记录今天'), findsOneWidget);
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
     await tester.pumpAndSettle();
-    expect(find.text('经期健康分析'), findsOneWidget);
+    expect(find.text('记录回顾'), findsOneWidget);
 
     await tester.tap(find.text('用药'));
     await tester.pumpAndSettle();
     expect(find.text('家庭药箱'), findsOneWidget);
-    expect(find.text('家庭药品'), findsOneWidget);
-    expect(find.text('退热滴剂'), findsOneWidget);
-    await tester.tap(find.text('记录'));
+    expect(find.text('今日用药'), findsOneWidget);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -500));
     await tester.pumpAndSettle();
     expect(find.text('用药记录'), findsOneWidget);
     expect(find.text('剂量：5ml'), findsOneWidget);
-
     await tester.tap(find.text('我的'));
     await tester.pumpAndSettle();
-    expect(find.text('我的成长'), findsOneWidget);
+    expect(find.text('成长进度'), findsOneWidget);
     expect(find.text('小勇士'), findsWidgets);
-    expect(find.text('可用星星'), findsOneWidget);
+    expect(find.text('连续完成'), findsOneWidget);
+    await tester.tap(find.text('历史详情'));
+    await tester.pumpAndSettle();
+    expect(find.text('历史打卡'), findsOneWidget);
+    expect(find.text('28 天打卡表'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -360));
+    await tester.pumpAndSettle();
     expect(find.text('Todo 管理'), findsOneWidget);
 
     await tester.tap(find.text('Todo 管理'));
     await tester.pumpAndSettle();
     expect(find.text('自己刷牙'), findsOneWidget);
     expect(find.text('任务'), findsNothing);
-    expect(find.text('妈妈'), findsNothing);
+    expect(find.text('经期'), findsNothing);
     expect(find.text('用药'), findsNothing);
     expect(find.text('我的'), findsNothing);
 

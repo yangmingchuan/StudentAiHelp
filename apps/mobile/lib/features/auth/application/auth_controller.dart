@@ -9,6 +9,9 @@ final authControllerProvider =
     AsyncNotifierProvider<AuthController, AuthSession?>(AuthController.new);
 
 class AuthController extends AsyncNotifier<AuthSession?> {
+  Future<AuthSession>? _refreshing;
+  Future<void> _writes = Future<void>.value();
+  int _epoch = 0;
   AuthApi get _api => ref.read(authApiProvider);
   SecureSessionStore get _store => ref.read(secureSessionStoreProvider);
 
@@ -23,16 +26,81 @@ class AuthController extends AsyncNotifier<AuthSession?> {
     }
 
     try {
+      return await _refresh(stored, publish: false);
+    } on AuthException catch (error) {
+      if (error.requiresSignIn) return null;
+      // Offline/local-cache access remains available. Network requests must still
+      // obtain a valid token through validSession before reaching the server.
+      return stored;
+    }
+  }
+
+  Future<void> _write(Future<void> Function() action) {
+    final next = _writes.then(
+      (_) => action(),
+      onError: (Object _, StackTrace _) => action(),
+    );
+    _writes = next;
+    return next;
+  }
+
+  Future<AuthSession> validSession({String? rejectedAccessToken}) async {
+    final session = state.asData?.value;
+    if (session == null) throw const AuthException('NOT_SIGNED_IN', '请先登录。');
+    if (!session.shouldRefresh && rejectedAccessToken != session.accessToken) {
+      return session;
+    }
+    return _refresh(session);
+  }
+
+  Future<AuthSession> _refresh(
+    AuthSession session, {
+    bool publish = true,
+  }) async {
+    if (_refreshing != null) return _refreshing!;
+    final epoch = _epoch;
+    final pending = _performRefresh(session, epoch, publish);
+    _refreshing = pending;
+    try {
+      return await pending;
+    } finally {
+      if (identical(_refreshing, pending)) _refreshing = null;
+    }
+  }
+
+  Future<AuthSession> _performRefresh(
+    AuthSession session,
+    int epoch,
+    bool publish,
+  ) async {
+    _ensureConfigured();
+    try {
       final refreshed = await _api.refresh(
-        refreshToken: stored.refreshToken,
+        refreshToken: session.refreshToken,
         deviceId: await _store.readOrCreateDeviceId(),
-        username: stored.username,
+        username: session.username,
       );
-      await _store.saveSession(refreshed);
+      if (!ref.mounted || epoch != _epoch) {
+        throw const AuthException('SESSION_CHANGED', '登录状态已改变，请重新操作。');
+      }
+      await _write(() async {
+        if (ref.mounted && epoch == _epoch) await _store.saveSession(refreshed);
+      });
+      if (!ref.mounted || epoch != _epoch) {
+        throw const AuthException('SESSION_CHANGED', '登录状态已改变，请重新操作。');
+      }
+      if (publish) state = AsyncData(refreshed);
       return refreshed;
-    } catch (_) {
-      await _store.clearSession();
-      return null;
+    } on AuthException catch (error) {
+      if (error.requiresSignIn && ref.mounted && epoch == _epoch) {
+        await _write(() async {
+          if (ref.mounted && epoch == _epoch) await _store.clearSession();
+        });
+        if (publish && ref.mounted && epoch == _epoch) {
+          state = const AsyncData(null);
+        }
+      }
+      rethrow;
     }
   }
 
@@ -41,6 +109,7 @@ class AuthController extends AsyncNotifier<AuthSession?> {
     required String password,
   }) async {
     _ensureConfigured();
+    final epoch = ++_epoch;
     state = const AsyncLoading();
     try {
       final session = await _api.signIn(
@@ -48,10 +117,12 @@ class AuthController extends AsyncNotifier<AuthSession?> {
         password: password,
         deviceId: await _store.readOrCreateDeviceId(),
       );
-      await _store.saveSession(session);
-      state = AsyncData(session);
+      await _write(() async {
+        if (ref.mounted && epoch == _epoch) await _store.saveSession(session);
+      });
+      if (ref.mounted && epoch == _epoch) state = AsyncData(session);
     } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
+      if (ref.mounted && epoch == _epoch) state = AsyncError(error, stackTrace);
       rethrow;
     }
   }
@@ -61,6 +132,7 @@ class AuthController extends AsyncNotifier<AuthSession?> {
     required String password,
   }) async {
     _ensureConfigured();
+    final epoch = ++_epoch;
     state = const AsyncLoading();
     try {
       await _api.register(username: username, password: password);
@@ -69,16 +141,22 @@ class AuthController extends AsyncNotifier<AuthSession?> {
         password: password,
         deviceId: await _store.readOrCreateDeviceId(),
       );
-      await _store.saveSession(session);
-      state = AsyncData(session);
+      await _write(() async {
+        if (ref.mounted && epoch == _epoch) await _store.saveSession(session);
+      });
+      if (ref.mounted && epoch == _epoch) state = AsyncData(session);
     } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
+      if (ref.mounted && epoch == _epoch) state = AsyncError(error, stackTrace);
       rethrow;
     }
   }
 
   Future<void> signOut() async {
     final session = state.asData?.value;
+    ++_epoch;
+    _refreshing = null;
+    await _write(_store.clearSession);
+    if (ref.mounted) state = const AsyncData(null);
     try {
       if (session != null) {
         await _api.signOut(
@@ -86,9 +164,8 @@ class AuthController extends AsyncNotifier<AuthSession?> {
           deviceId: await _store.readOrCreateDeviceId(),
         );
       }
-    } finally {
-      await _store.clearSession();
-      state = const AsyncData(null);
+    } on AuthException {
+      // Local logout already succeeded; an unavailable server must not undo it.
     }
   }
 
@@ -97,7 +174,7 @@ class AuthController extends AsyncNotifier<AuthSession?> {
     if (!environment.isCloudConfigured) {
       throw const AuthException(
         'CLOUDBASE_NOT_CONFIGURED',
-        '尚未配置 CloudBase dev 环境，请使用项目 README 中的启动参数。',
+        '当前安装包缺少有效的服务配置，请使用带环境配置的版本重新安装。',
       );
     }
   }

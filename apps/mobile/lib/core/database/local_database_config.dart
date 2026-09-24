@@ -1,4 +1,4 @@
 abstract final class LocalDatabaseConfig {
   static const fileName = 'little_hero.sqlite';
-  static const schemaVersion = 4;
+  static const schemaVersion = 6;
 }

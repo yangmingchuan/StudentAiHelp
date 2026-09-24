@@ -1,814 +1,495 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:little_hero/core/theme/app_theme.dart';
 import 'package:little_hero/features/mama_tools/application/cycle_controller.dart';
+import 'package:little_hero/features/mama_tools/data/cycle_repository.dart';
 import 'package:little_hero/features/mama_tools/domain/cycle_models.dart';
+import 'package:little_hero/features/mama_tools/presentation/cycle_widgets.dart';
 
 class MamaToolsPage extends ConsumerWidget {
   const MamaToolsPage({super.key});
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(cycleControllerProvider);
-
-    return state.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => _MamaErrorView(
-        message: error.toString(),
-        onRetry: () => ref.invalidate(cycleControllerProvider),
-      ),
-      data: (snapshot) {
-        if (snapshot.needsSetup) {
-          return _CycleSetupView(snapshot: snapshot);
-        }
-        return _CycleHomeView(snapshot: snapshot);
-      },
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) => CycleScene(
+    child: ref
+        .watch(cycleControllerProvider)
+        .when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, _) => Center(
+            child: CycleCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('暂时无法读取经期记录'),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => ref.invalidate(cycleControllerProvider),
+                    child: const Text('重试'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          data: (snapshot) => snapshot.needsSetup
+              ? const _Setup()
+              : _CycleHome(snapshot: snapshot),
+        ),
+  );
 }
 
-class _CycleSetupView extends ConsumerStatefulWidget {
-  const _CycleSetupView({required this.snapshot});
-
-  final CycleSnapshot snapshot;
-
+class _Setup extends ConsumerStatefulWidget {
+  const _Setup();
   @override
-  ConsumerState<_CycleSetupView> createState() => _CycleSetupViewState();
+  ConsumerState<_Setup> createState() => _SetupState();
 }
 
-class _CycleSetupViewState extends ConsumerState<_CycleSetupView> {
-  late DateTime _lastPeriodStart;
-  late DateTime _birthDate;
-  int _periodLengthDays = 5;
-  bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final today = DateTime.now();
-    _lastPeriodStart = DateTime(today.year, today.month, today.day);
-    _birthDate = DateTime(today.year - 30, today.month, today.day);
-  }
-
-  Future<void> _pickLastPeriodStart() async {
+class _SetupState extends ConsumerState<_Setup> {
+  DateTime? _start;
+  int _period = 5, _cycle = 28;
+  bool _saving = false;
+  Future<void> _pick() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _lastPeriodStart,
+      initialDate: _start ?? DateTime.now(),
       firstDate: DateTime(2000),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-    );
-    if (picked != null) {
-      setState(() => _lastPeriodStart = picked);
-    }
-  }
-
-  Future<void> _pickBirthDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _birthDate,
-      firstDate: DateTime(1950),
       lastDate: DateTime.now(),
+      helpText: '最近一次经期开始',
     );
-    if (picked != null) {
-      setState(() => _birthDate = picked);
-    }
+    if (picked != null && mounted) setState(() => _start = picked);
   }
 
   Future<void> _save() async {
-    setState(() => _isSaving = true);
+    if (_start == null) return;
+    setState(() => _saving = true);
     try {
       await ref
           .read(cycleControllerProvider.notifier)
           .saveSetup(
             CycleProfileDraft(
-              lastPeriodStartDate: _lastPeriodStart,
-              periodLengthDays: _periodLengthDays,
-              cycleLengthDays: 28,
-              birthDate: _birthDate,
+              lastPeriodStartDate: _start!,
+              periodLengthDays: _period,
+              cycleLengthDays: _cycle,
             ),
           );
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
+        ).showSnackBar(SnackBar(content: Text(cycleErrorText(error))));
       }
     } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
-      children: [
-        const _MamaHeader(title: '妈妈工具', subtitle: '先填一点基础信息，日历会开始预测'),
-        const SizedBox(height: 18),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('首次设置', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Text(
-                  '数据会先保存在本机。经期预测只用于生活提醒，不作为医学、避孕或妊娠判断依据。',
-                  style: TextStyle(
-                    color: AppColors.ink.withValues(alpha: 0.66),
-                    fontWeight: FontWeight.w600,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _PickerTile(
-                  icon: Icons.event_available_rounded,
-                  label: '最近一次经期开始',
-                  value: _formatDateLabel(_lastPeriodStart),
-                  onTap: _pickLastPeriodStart,
-                ),
-                const SizedBox(height: 12),
-                _StepperTile(
-                  icon: Icons.timelapse_rounded,
-                  label: '一般经期持续天数',
-                  value: '$_periodLengthDays天',
-                  onMinus: _periodLengthDays <= 2
-                      ? null
-                      : () => setState(() => _periodLengthDays -= 1),
-                  onPlus: _periodLengthDays >= 10
-                      ? null
-                      : () => setState(() => _periodLengthDays += 1),
-                ),
-                const SizedBox(height: 12),
-                _PickerTile(
-                  icon: Icons.cake_rounded,
-                  label: '妈妈出生年月日',
-                  value: _formatDateLabel(_birthDate),
-                  onTap: _pickBirthDate,
-                ),
-                const SizedBox(height: 18),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppColors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(14),
-                    child: Text(
-                      '月经周期长度先按 28 天计算，之后可在设置里修改。',
-                      style: TextStyle(
-                        color: AppColors.ink,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _isSaving ? null : _save,
-                    child: Text(_isSaving ? '保存中...' : '开始使用妈妈工具'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CycleHomeView extends ConsumerWidget {
-  const _CycleHomeView({required this.snapshot});
-
-  final CycleSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.read(cycleControllerProvider.notifier);
-    return CustomScrollView(
-      slivers: [
-        const SliverToBoxAdapter(child: _MamaTabTitle()),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-          sliver: SliverList.list(
-            children: [
-              _CalendarCard(
-                snapshot: snapshot,
-                onPreviousMonth: controller.previousMonth,
-                onNextMonth: controller.nextMonth,
-                onSelectDate: controller.selectDate,
-              ),
-              const SizedBox(height: 6),
-              _DayDetailPanel(day: snapshot.selectedDay),
-              const SizedBox(height: 14),
-              _ActionList(healthScore: snapshot.healthScore),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MamaTabTitle extends StatelessWidget {
-  const _MamaTabTitle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-      child: Text(
-        '妈妈',
-        style: const TextStyle(
-          color: AppColors.ink,
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _CalendarCard extends StatelessWidget {
-  const _CalendarCard({
-    required this.snapshot,
-    required this.onPreviousMonth,
-    required this.onNextMonth,
-    required this.onSelectDate,
-  });
-
-  final CycleSnapshot snapshot;
-  final VoidCallback onPreviousMonth;
-  final VoidCallback onNextMonth;
-  final ValueChanged<DateTime> onSelectDate;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.calendar_month_rounded),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '${snapshot.visibleMonth.year}年${snapshot.visibleMonth.month}月',
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  tooltip: '上个月',
-                  onPressed: onPreviousMonth,
-                  icon: const Icon(Icons.chevron_left_rounded),
-                ),
-                IconButton(
-                  tooltip: '下个月',
-                  onPressed: onNextMonth,
-                  icon: const Icon(Icons.chevron_right_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            const _WeekHeader(),
-            const SizedBox(height: 6),
-            GridView.builder(
-              itemCount: snapshot.calendarDays.length,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                mainAxisSpacing: 4,
-                crossAxisSpacing: 4,
-                childAspectRatio: 1.04,
-              ),
-              itemBuilder: (context, index) {
-                final day = snapshot.calendarDays[index];
-                return _CalendarDayCell(
-                  day: day,
-                  onTap: () => onSelectDate(day.date),
-                );
-              },
-            ),
-            const SizedBox(height: 10),
-            const _CalendarLegend(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _WeekHeader extends StatelessWidget {
-  const _WeekHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    const labels = ['日', '一', '二', '三', '四', '五', '六'];
-    return Row(
-      children: [
-        for (final label in labels)
-          Expanded(
-            child: Center(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: label == '一'
-                      ? AppColors.orange
-                      : AppColors.ink.withValues(alpha: 0.48),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _CalendarDayCell extends StatelessWidget {
-  const _CalendarDayCell({required this.day, required this.onTap});
-
-  final CycleCalendarDay day;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _phaseColor(day.info.phase);
-    final background =
-        day.info.phase == CyclePhase.predictedPeriod ||
-            day.info.phase == CyclePhase.menstrual
-        ? color.withValues(alpha: 0.18)
-        : Colors.transparent;
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: day.isSelected ? color.withValues(alpha: 0.2) : background,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: day.isSelected ? color : Colors.transparent,
-            width: day.isSelected ? 2 : 1,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(2, 2, 2, 2),
-          child: Column(
-            children: [
-              Expanded(
-                child: Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      day.date.day.toString(),
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: day.isInVisibleMonth
-                            ? color
-                            : AppColors.ink.withValues(alpha: 0.24),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 12,
-                child: day.isToday
-                    ? const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          '今天',
-                          maxLines: 1,
-                          style: TextStyle(
-                            color: AppColors.orange,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
-                          ),
-                        ),
-                      )
-                    : day.info.hasDiary
-                    ? Icon(Icons.edit_note_rounded, size: 12, color: color)
-                    : null,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DayDetailPanel extends StatelessWidget {
-  const _DayDetailPanel({required this.day});
-
-  final CycleDayInfo day;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
+  Widget build(BuildContext context) => ListView(
+    padding: cyclePagePadding(context),
+    children: [
+      const CycleHeading(title: '经期手记', subtitle: '记录自己的节奏，好好照顾自己'),
+      const SizedBox(height: 14),
+      CycleCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${_formatDateLabel(day.date)} 详细说明',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-                Text(
-                  '第${day.cycleDay}天',
-                  style: TextStyle(
-                    color: AppColors.ink.withValues(alpha: 0.56),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
+            const Text('从最近一次经期开始', style: TextStyle(fontSize: 20)),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                for (final tag in day.tags)
-                  Chip(
-                    label: Text(tag),
-                    backgroundColor: _phaseColor(
-                      day.phase,
-                    ).withValues(alpha: 0.12),
-                    side: BorderSide.none,
-                  ),
-              ],
+            const Text(
+              '填写三个信息，建立你的周期日历。',
+              style: TextStyle(color: Color(0xFF786B72)),
             ),
-            const SizedBox(height: 8),
-            _DetailRow(
-              label: '当前易孕概率',
-              value: day.fertilityLabel,
-              icon: Icons.favorite_rounded,
-              color: AppColors.coral,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              day.advice,
-              style: TextStyle(
-                color: AppColors.ink.withValues(alpha: 0.72),
-                fontWeight: FontWeight.w600,
-                height: 1.45,
-              ),
-            ),
-            const Divider(height: 26),
+            const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                backgroundColor: AppColors.orange.withValues(alpha: 0.14),
-                child: const Icon(
-                  Icons.edit_note_rounded,
-                  color: AppColors.orange,
-                ),
+              leading: const Icon(
+                Icons.event_available_rounded,
+                color: cycleRose,
               ),
-              title: const Text(
-                '身体日记',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
+              title: const Text('经期开始日期'),
               subtitle: Text(
-                day.hasDiary ? day.diaryText : '记录今天的身体感受，只支持文字',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                _start == null ? '请选择实际开始的日期' : cycleDateLabel(_start!),
               ),
               trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => context.push('/mama/diary/${_formatDate(day.date)}'),
+              onTap: _saving ? null : _pick,
+            ),
+            const Divider(height: 28),
+            CycleNumberField(
+              label: '通常经期持续',
+              value: _period,
+              min: 1,
+              max: 15,
+              onChanged: (v) => setState(() => _period = v),
+            ),
+            const Divider(height: 28),
+            CycleNumberField(
+              label: '通常周期长度',
+              value: _cycle,
+              min: 15,
+              max: 90,
+              onChanged: (v) => setState(() => _cycle = v),
+            ),
+            const Text(
+              '周期长度：两次经期第一天之间的天数。不确定时可先保留默认值，之后随时调整。',
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: Color(0xFF786B72),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _saving || _start == null ? null : _save,
+                child: Text(_saving ? '保存中…' : '开启我的经期日历'),
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _ActionList extends StatelessWidget {
-  const _ActionList({required this.healthScore});
-
-  final int healthScore;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Column(
-        children: [
-          _ActionTile(
-            icon: Icons.monitor_heart_rounded,
-            title: '经期健康分析',
-            subtitle: '当前健康分 $healthScore，仅供生活参考',
-            color: AppColors.coral,
-            onTap: () => context.push('/mama/analysis'),
-          ),
-          const Divider(height: 1),
-          _ActionTile(
-            icon: Icons.lightbulb_rounded,
-            title: '每日建议',
-            subtitle: '根据当天阶段给出宜忌提醒',
-            color: AppColors.orange,
-            onTap: () => context.push('/mama/advice'),
-          ),
-          const Divider(height: 1),
-          _ActionTile(
-            icon: Icons.settings_rounded,
-            title: '设置',
-            subtitle: '修改生日、经期天数和周期长度',
-            color: AppColors.blue,
-            onTap: () => context.push('/mama/settings'),
-          ),
-        ],
+      const SizedBox(height: 12),
+      const CycleCard(
+        child: Text(
+          '记录保存在当前设备。预测仅供日程参考，不用于避孕、怀孕判断或疾病诊断。',
+          style: TextStyle(fontSize: 12, height: 1.5),
+        ),
       ),
+    ],
+  );
+}
+
+class _CycleHome extends ConsumerWidget {
+  const _CycleHome({required this.snapshot});
+  final CycleSnapshot snapshot;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(cycleControllerProvider.notifier);
+    final expected = snapshot.nextPeriodDate!;
+    final remaining = cycleDaysBetween(expected, snapshot.today);
+    final day = snapshot.selectedDay;
+    final isFuture = day.date.isAfter(snapshot.today);
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: cyclePagePadding(context),
+          sliver: SliverList.list(
+            children: [
+              const CycleHeading(title: '经期手记', subtitle: '每一个阶段，都值得被温柔对待'),
+              const SizedBox(height: 12),
+              CycleCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.spa_outlined,
+                          color: cycleRose,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            '下一次经期 · 预计',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: '周期设置',
+                          onPressed: () => context.push('/mama/settings'),
+                          icon: const Icon(Icons.tune_rounded),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      remaining > 0
+                          ? '还有 $remaining 天'
+                          : remaining == 0
+                          ? '预计今天开始'
+                          : '预计日期已过 ${-remaining} 天',
+                      style: const TextStyle(fontSize: 27, color: cycleRose),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      '${cycleDateLabel(expected)} · 根据已填写的周期估算',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF786B72),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => context.push(
+                          '/mama/diary/${cycleDateKey(snapshot.today)}',
+                        ),
+                        icon: const Icon(Icons.edit_calendar_rounded, size: 18),
+                        label: const Text('记录今天'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _Calendar(
+                snapshot: snapshot,
+                previous: controller.previousMonth,
+                next: controller.nextMonth,
+                today: controller.goToToday,
+                select: controller.selectDate,
+              ),
+              const SizedBox(height: 12),
+              CycleCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${day.date.month}月${day.date.day}日 · ${day.phase.label}',
+                            style: const TextStyle(fontSize: 18),
+                          ),
+                        ),
+                        Icon(
+                          day.hasRecord
+                              ? Icons.check_circle_outline
+                              : Icons.edit_note,
+                          color: cycleRose,
+                          size: 22,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(day.summary, style: const TextStyle(fontSize: 14)),
+                    if (day.symptoms.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(day.symptoms.join(' · ')),
+                      ),
+                    if (day.hasDiary)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          day.diaryText,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: isFuture
+                          ? null
+                          : () => context.push(
+                              '/mama/diary/${cycleDateKey(day.date)}',
+                            ),
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      label: Text(
+                        isFuture
+                            ? '未来日期仅展示预测'
+                            : day.hasRecord
+                            ? '编辑这一天'
+                            : '记录这一天',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              CycleCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Image.asset(
+                        'assets/task_icons/reading.png',
+                        width: 42,
+                        height: 42,
+                      ),
+                      title: const Text('记录回顾'),
+                      subtitle: const Text('查看经量、感受与历史日记'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/mama/analysis'),
+                    ),
+                    const Divider(height: 1, indent: 18, endIndent: 18),
+                    ListTile(
+                      leading: Image.asset(
+                        'assets/task_icons/emotion.png',
+                        width: 42,
+                        height: 42,
+                      ),
+                      title: const Text('照顾自己'),
+                      subtitle: const Text('身体感受与日常提醒'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/mama/advice'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const CycleCard(
+                child: Text(
+                  '已记录和预测是两回事。预测不用于避孕或疾病诊断。',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
+class _Calendar extends StatelessWidget {
+  const _Calendar({
+    required this.snapshot,
+    required this.previous,
+    required this.next,
+    required this.today,
+    required this.select,
   });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
+  final CycleSnapshot snapshot;
+  final VoidCallback previous, next, today;
+  final ValueChanged<DateTime> select;
   @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      leading: CircleAvatar(
-        backgroundColor: color.withValues(alpha: 0.14),
-        child: Icon(icon, color: color),
-      ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: onTap,
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context) => CycleCard(
+    padding: const EdgeInsets.all(12),
+    child: Column(
       children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
-        const Spacer(),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CalendarLegend extends StatelessWidget {
-  const _CalendarLegend();
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 8,
-      children: const [
-        _LegendItem(color: AppColors.orange, label: '月经/预测经期'),
-        _LegendItem(color: Color(0xFFD36AEF), label: '排卵期'),
-        _LegendItem(color: AppColors.green, label: '易孕日'),
-        _LegendItem(color: AppColors.blue, label: '易瘦期'),
-      ],
-    );
-  }
-}
-
-class _LegendItem extends StatelessWidget {
-  const _LegendItem({required this.color, required this.label});
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: const SizedBox(width: 18, height: 6),
-        ),
-        const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
-}
-
-class _PickerTile extends StatelessWidget {
-  const _PickerTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      tileColor: AppColors.orange.withValues(alpha: 0.08),
-      leading: Icon(icon, color: AppColors.orange),
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
-      trailing: Text(
-        value,
-        style: const TextStyle(
-          color: AppColors.orange,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-      onTap: onTap,
-    );
-  }
-}
-
-class _StepperTile extends StatelessWidget {
-  const _StepperTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onMinus,
-    required this.onPlus,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final VoidCallback? onMinus;
-  final VoidCallback? onPlus;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.orange.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
+        Row(
           children: [
-            Icon(icon, color: AppColors.orange),
-            const SizedBox(width: 14),
+            IconButton(
+              tooltip: '上个月',
+              onPressed: previous,
+              icon: const Icon(Icons.chevron_left_rounded),
+            ),
             Expanded(
               child: Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.w800),
+                '${snapshot.visibleMonth.year}年${snapshot.visibleMonth.month}月',
+                style: const TextStyle(fontSize: 18),
               ),
             ),
+            TextButton(onPressed: today, child: const Text('今天')),
             IconButton(
-              tooltip: '减少',
-              onPressed: onMinus,
-              icon: const Icon(Icons.remove_circle_outline_rounded),
-            ),
-            Text(
-              value,
-              style: const TextStyle(
-                color: AppColors.orange,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            IconButton(
-              tooltip: '增加',
-              onPressed: onPlus,
-              icon: const Icon(Icons.add_circle_outline_rounded),
+              tooltip: '下个月',
+              onPressed: next,
+              icon: const Icon(Icons.chevron_right_rounded),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _MamaHeader extends StatelessWidget {
-  const _MamaHeader({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: AppColors.ink.withValues(alpha: 0.66),
+        Row(
+          children: [
+            for (final name in ['日', '一', '二', '三', '四', '五', '六'])
+              Expanded(
+                child: Center(
+                  child: Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF786B72),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        GridView.builder(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: snapshot.calendarDays.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 2,
+            mainAxisExtent: 44,
           ),
+          itemBuilder: (context, index) {
+            final day = snapshot.calendarDays[index];
+            final recorded = day.info.phase == CyclePhase.menstrual;
+            final predicted = day.info.phase == CyclePhase.predictedPeriod;
+            return Semantics(
+              button: true,
+              selected: day.isSelected,
+              label:
+                  '${cycleDateLabel(day.date)}，${day.info.phase.label}${day.info.hasRecord ? '，有记录' : ''}',
+              child: InkWell(
+                onTap: () => select(day.date),
+                borderRadius: BorderRadius.circular(13),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(13),
+                    color: recorded
+                        ? cycleRose
+                        : predicted
+                        ? const Color(0xFFF9E3EB)
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: day.isSelected
+                          ? const Color(0xFF265A50)
+                          : predicted
+                          ? cycleRose.withValues(alpha: .3)
+                          : Colors.transparent,
+                      width: day.isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${day.date.day}',
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 15,
+                            height: 1.1,
+                            color: recorded
+                                ? Colors.white
+                                : day.isInVisibleMonth
+                                ? cycleInk
+                                : const Color(0xFF94858C),
+                          ),
+                        ),
+                      ),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          day.isToday
+                              ? '今天'
+                              : day.info.hasRecord
+                              ? '·'
+                              : predicted
+                              ? '预'
+                              : '',
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 9,
+                            height: 1.05,
+                            color: recorded ? Colors.white : cycleRose,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        const Wrap(
+          spacing: 14,
+          runSpacing: 4,
+          children: [
+            Text('● 已记录经期', style: TextStyle(color: cycleRose, fontSize: 11)),
+            Text('预  预测经期', style: TextStyle(color: cycleRose, fontSize: 11)),
+            Text('· 有日记或感受', style: TextStyle(fontSize: 11)),
+          ],
         ),
       ],
-    );
-  }
-}
-
-class _MamaErrorView extends StatelessWidget {
-  const _MamaErrorView({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: const Text('重试')),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-Color _phaseColor(CyclePhase phase) {
-  return switch (phase) {
-    CyclePhase.menstrual || CyclePhase.predictedPeriod => AppColors.orange,
-    CyclePhase.ovulation => const Color(0xFFD36AEF),
-    CyclePhase.fertile => AppColors.green,
-    CyclePhase.slim => AppColors.blue,
-    CyclePhase.luteal => AppColors.coral,
-    CyclePhase.normal => AppColors.ink,
-    CyclePhase.setup => AppColors.ink,
-  };
-}
-
-String _formatDate(DateTime value) {
-  return '${value.year.toString().padLeft(4, '0')}-'
-      '${value.month.toString().padLeft(2, '0')}-'
-      '${value.day.toString().padLeft(2, '0')}';
-}
-
-String _formatDateLabel(DateTime value) {
-  return '${value.year}年${value.month}月${value.day}日';
+    ),
+  );
 }

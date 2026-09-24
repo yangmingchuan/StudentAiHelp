@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 enum AppFlavor { dev, staging, prod }
 
 class AppEnvironment {
@@ -17,6 +19,16 @@ class AppEnvironment {
     const authApiBaseUrl = String.fromEnvironment('AUTH_API_BASE_URL');
     const functionApiBaseUrl = String.fromEnvironment('FUNCTION_API_BASE_URL');
 
+    // Only a plain debug launch may use the checked-in development endpoints.
+    // Partial overrides must never accidentally mix two environments.
+    if (kDebugMode &&
+        flavorName == 'dev' &&
+        envId.isEmpty &&
+        authApiBaseUrl.isEmpty &&
+        functionApiBaseUrl.isEmpty) {
+      return development;
+    }
+
     return AppEnvironment(
       flavor: AppFlavor.values.firstWhere(
         (flavor) => flavor.name == flavorName,
@@ -33,8 +45,29 @@ class AppEnvironment {
   final String authApiBaseUrl;
   final String functionApiBaseUrl;
 
+  static const development = AppEnvironment(
+    flavor: AppFlavor.dev,
+    cloudBaseEnvId: 'little-hero-dev-d7f95sqy70d3a475',
+    authApiBaseUrl:
+        'https://little-hero-dev-d7f95sqy70d3a475.api.tcloudbasegateway.com',
+    functionApiBaseUrl:
+        'https://little-hero-dev-d7f95sqy70d3a475.service.tcloudbase.com',
+  );
+
+  String get sessionNamespace => '$cloudBaseEnvId|$authApiBaseUrl';
+
   bool get isCloudConfigured =>
       cloudBaseEnvId.isNotEmpty &&
-      authApiBaseUrl.isNotEmpty &&
-      functionApiBaseUrl.isNotEmpty;
+      _isHttpsEndpoint(authApiBaseUrl) &&
+      _isHttpsEndpoint(functionApiBaseUrl);
+
+  static bool _isHttpsEndpoint(String value) {
+    final uri = Uri.tryParse(value);
+    return uri != null &&
+        uri.scheme == 'https' &&
+        uri.host.isNotEmpty &&
+        uri.userInfo.isEmpty &&
+        !uri.hasQuery &&
+        !uri.hasFragment;
+  }
 }

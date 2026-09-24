@@ -89,7 +89,7 @@ class _TodoTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final textStyle = Theme.of(
       context,
-    ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800);
+    ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400);
 
     return Card(
       child: Padding(

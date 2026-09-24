@@ -44,6 +44,11 @@ dependencies:
   path_provider: ^2.1.6
   path: ^1.9.1
   flutter_secure_storage: ^10.3.1
+  flutter_local_notifications: ^22.3.1
+  flutter_timezone: ^5.1.0
+  timezone: ^0.11.0
+  cryptography: ^2.9.0
+  cryptography_flutter: ^2.3.4
   connectivity_plus: ^7.1.1
   uuid: ^4.5.3
   lottie: ^3.3.3
@@ -73,6 +78,13 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/mascots/day_explorer_cat.png
+    - assets/mascots/night_astronaut_cat.png
+    - assets/backgrounds/
+    - assets/headers/
+    - assets/task_icons/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

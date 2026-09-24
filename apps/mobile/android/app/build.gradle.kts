@@ -1,7 +1,26 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val validateReleaseServices by tasks.registering {
+    doLast {
+        val properties = Properties()
+        rootProject.file("local.properties").inputStream().use { properties.load(it) }
+        val flutterSdk = properties.getProperty("flutter.sdk")
+        val dart = if (System.getProperty("os.name").startsWith("Windows")) "dart.exe" else "dart"
+        providers.exec {
+            commandLine("$flutterSdk/bin/cache/dart-sdk/bin/$dart",
+                "${rootProject.projectDir}/../tool/validate_release_config.dart",
+                "--defines", project.findProperty("dart-defines")?.toString() ?: "")
+        }.result.get().assertNormalExitValue()
+    }
+}
+tasks.configureEach {
+    if (name == "compileFlutterBuildRelease") dependsOn(validateReleaseServices)
 }
 
 android {
@@ -10,6 +29,7 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -29,6 +49,10 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 kotlin {

@@ -6,18 +6,20 @@ Flutter Android/iOS 共享工程。
 
 ```bash
 fvm flutter pub get
-fvm flutter run
+./scripts/run_dev.sh
 ```
 
-默认使用 `dev` 环境。连接 CloudBase 前必须显式传入完整 EnvId 和 API 地址：
+默认使用 `dev` 环境。开发配置在 `config/dev.json`；Android Studio 请选择共享的 `Development` 运行配置。普通 Debug Run 也会使用同一个开发环境，避免参数遗漏。
+
+## 正式发布
 
 ```bash
-fvm flutter run \
-  --dart-define=APP_FLAVOR=dev \
-  --dart-define=CLOUDBASE_ENV_ID=little-hero-dev-d7f95sqy70d3a475 \
-  --dart-define=AUTH_API_BASE_URL=https://little-hero-dev-d7f95sqy70d3a475.api.tcloudbasegateway.com \
-  --dart-define=FUNCTION_API_BASE_URL=https://little-hero-dev-d7f95sqy70d3a475.service.tcloudbase.com
+cp config/prod.example.json config/prod.json
+# 编辑 prod.json，填写正式 CloudBase EnvId 与正式 HTTPS 地址；不要写入密码、Token 或 SecretKey。
+./scripts/build_release.sh appbundle config/prod.json
 ```
+
+Release 构建会拒绝缺失配置、dev 环境、占位地址、HTTP 地址和客户端密钥；这一检查同时挂在 Android 与 iOS 的原生构建阶段，因此不会因为绕过脚本而失效。
 
 客户端通过 HTTPS 调用 CloudBase Auth 和业务 HTTP API，不接入 CloudBase Web SDK，也不在安装包中保存 API Key。
 
@@ -38,3 +40,7 @@ fvm flutter run \
 ```
 
 进入 Flutter 交互模式后，直接按 `r` 热重载，按 `R` 热重启，按 `q` 停止运行。
+
+## 登录保持
+
+用户密码不保存在设备中。登录成功后，access token 与 refresh token 保存在 Android Keystore 或 iOS Keychain。access token 即将过期时自动刷新并原子性替换整对 Token；网络暂时不可用时保留本机会话，只有服务端明确返回 refresh token 无效/过期/撤销时才要求重新登录。

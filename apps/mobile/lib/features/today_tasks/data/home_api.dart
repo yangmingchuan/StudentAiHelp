@@ -14,18 +14,10 @@ class HomeApi {
   final Ref _ref;
 
   Future<Map<String, dynamic>> bootstrap() async {
-    final session = _ref.read(authControllerProvider).asData?.value;
-    if (session == null) {
-      throw StateError('Not signed in');
-    }
-
-    final response = await _dio.get<Map<String, dynamic>>(
-      '/api/bootstrap',
-      options: Options(
-        headers: {'Authorization': 'Bearer ${session.accessToken}'},
-      ),
+    return _authorized(
+      (options) =>
+          _dio.get<Map<String, dynamic>>('/api/bootstrap', options: options),
     );
-    return _data(response.data);
   }
 
   Future<Map<String, dynamic>> submitTaskStatus({
@@ -34,24 +26,18 @@ class HomeApi {
     required int taskId,
     required String status,
   }) async {
-    final session = _ref.read(authControllerProvider).asData?.value;
-    if (session == null) {
-      throw StateError('Not signed in');
-    }
-
-    final response = await _dio.post<Map<String, dynamic>>(
-      '/api/tasks/record',
-      data: {
-        'operationId': operationId,
-        'childId': childId,
-        'taskId': taskId,
-        'status': status,
-      },
-      options: Options(
-        headers: {'Authorization': 'Bearer ${session.accessToken}'},
+    return _authorized(
+      (options) => _dio.post<Map<String, dynamic>>(
+        '/api/tasks/record',
+        data: {
+          'operationId': operationId,
+          'childId': childId,
+          'taskId': taskId,
+          'status': status,
+        },
+        options: options,
       ),
     );
-    return _data(response.data);
   }
 
   Future<Map<String, dynamic>> submitTaskManagement({
@@ -59,19 +45,32 @@ class HomeApi {
     required String action,
     required Map<String, Object?> payload,
   }) async {
-    final session = _ref.read(authControllerProvider).asData?.value;
-    if (session == null) {
-      throw StateError('Not signed in');
-    }
-
-    final response = await _dio.post<Map<String, dynamic>>(
-      '/api/tasks/manage',
-      data: {'operationId': operationId, 'action': action, ...payload},
-      options: Options(
-        headers: {'Authorization': 'Bearer ${session.accessToken}'},
+    return _authorized(
+      (options) => _dio.post<Map<String, dynamic>>(
+        '/api/tasks/manage',
+        data: {'operationId': operationId, 'action': action, ...payload},
+        options: options,
       ),
     );
-    return _data(response.data);
+  }
+
+  Future<Map<String, dynamic>> _authorized(
+    Future<Response<Map<String, dynamic>>> Function(Options) request,
+  ) async {
+    final auth = _ref.read(authControllerProvider.notifier);
+    final session = await auth.validSession();
+    Options headers(String token) =>
+        Options(headers: {'Authorization': 'Bearer $token'});
+    try {
+      return _data((await request(headers(session.accessToken))).data);
+    } on DioException catch (error) {
+      if (error.response?.statusCode != 401) rethrow;
+      // Exactly one retry. Existing operationId is retained for idempotent writes.
+      final refreshed = await auth.validSession(
+        rejectedAccessToken: session.accessToken,
+      );
+      return _data((await request(headers(refreshed.accessToken))).data);
+    }
   }
 
   Map<String, dynamic> _data(Map<String, dynamic>? body) {

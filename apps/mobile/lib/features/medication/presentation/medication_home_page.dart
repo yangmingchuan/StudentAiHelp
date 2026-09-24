@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:little_hero/core/theme/app_theme.dart';
-import 'package:little_hero/core/widgets/page_heading.dart';
+import 'package:little_hero/features/mama_tools/presentation/cycle_widgets.dart';
 import 'package:little_hero/features/medication/application/medication_controller.dart';
 import 'package:little_hero/features/medication/domain/medication_models.dart';
 
@@ -15,54 +15,82 @@ class MedicationHomePage extends ConsumerStatefulWidget {
 }
 
 class _MedicationHomePageState extends ConsumerState<MedicationHomePage> {
-  _MedicationSection _section = _MedicationSection.medicines;
+  _MedicationSection _section = _MedicationSection.logs;
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(medicationControllerProvider);
 
-    return state.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => _MedicationErrorView(
-        message: error.toString(),
-        onRetry: () => ref.invalidate(medicationControllerProvider),
-      ),
-      data: (snapshot) {
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
-          children: [
-            const PageHeading(title: '家庭药箱', subtitle: '文字记录家庭成员、药品档案和每次用药'),
-            const SizedBox(height: 16),
-            const _SafetyNotice(),
-            const SizedBox(height: 14),
-            _MedicationSummary(snapshot: snapshot),
-            if (_shouldShowAlerts(snapshot)) ...[
-              const SizedBox(height: 14),
-              _MedicationAlertCard(snapshot: snapshot),
-            ],
-            const SizedBox(height: 18),
-            _MedicationSegments(
-              selected: _section,
-              onChanged: (section) => setState(() => _section = section),
+    return CycleScene(
+      child: state.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => _MedicationErrorView(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(medicationControllerProvider),
+        ),
+        data: (snapshot) => Theme(
+          // The meadow stays visible in the gutters, while every information
+          // surface remains legible over the detailed illustration.
+          data: Theme.of(context).copyWith(
+            cardTheme: Theme.of(context).cardTheme.copyWith(
+              color: const Color(0xFAFFFCF8),
+              surfaceTintColor: Colors.transparent,
+              margin: EdgeInsets.zero,
             ),
-            const SizedBox(height: 16),
-            switch (_section) {
-              _MedicationSection.medicines => _MedicineSection(
-                medicines: snapshot.medicines,
-                onAdd: () => _showMedicineSheet(context),
+          ),
+          child: ListView(
+            padding: cyclePagePadding(context),
+            children: [
+              _MedicationHero(
+                snapshot: snapshot,
+                onAddLog: () => _showLogSheet(context, snapshot),
               ),
-              _MedicationSection.logs => _LogSection(
-                logs: snapshot.logs,
-                onAdd: () => _showLogSheet(context, snapshot),
+              const SizedBox(height: 12),
+              _MedicationSummary(snapshot: snapshot),
+              const SizedBox(height: 12),
+              _MedicationTimeline(
+                snapshot: snapshot,
+                onAddLog: () => _showLogSheet(context, snapshot),
               ),
-              _MedicationSection.members => _MemberSection(
-                members: snapshot.members,
-                onAdd: () => _showMemberSheet(context),
+              if (_shouldShowAlerts(snapshot)) ...[
+                const SizedBox(height: 12),
+                _MedicationAlertCard(
+                  snapshot: snapshot,
+                  onResolveReminder: _resolveReminder,
+                ),
+              ],
+              const SizedBox(height: 12),
+              const _SafetyNotice(),
+              const SizedBox(height: 14),
+              _MedicationSegments(
+                selected: _section,
+                onChanged: (section) => setState(() => _section = section),
               ),
-            },
-          ],
-        );
-      },
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: switch (_section) {
+                  _MedicationSection.medicines => _MedicineSection(
+                    medicines: snapshot.medicines,
+                    onAdd: () => _showMedicineSheet(context),
+                  ),
+                  _MedicationSection.logs => _LogSection(
+                    logs: snapshot.logs,
+                    onAdd: () => _showLogSheet(context, snapshot),
+                    onAmend: (log) =>
+                        _showLogSheet(context, snapshot, originalLog: log),
+                    onVoid: _voidLog,
+                  ),
+                  _MedicationSection.members => _MemberSection(
+                    members: snapshot.members,
+                    onAdd: () => _showMemberSheet(context),
+                  ),
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -106,21 +134,300 @@ class _MedicationHomePageState extends ConsumerState<MedicationHomePage> {
 
   Future<void> _showLogSheet(
     BuildContext context,
-    MedicationSnapshot snapshot,
-  ) {
+    MedicationSnapshot snapshot, {
+    MedicationLogEntry? originalLog,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) {
         return _LogForm(
           snapshot: snapshot,
+          originalLog: originalLog,
           onSubmit: (draft) async {
-            await ref.read(medicationControllerProvider.notifier).addLog(draft);
+            final controller = ref.read(medicationControllerProvider.notifier);
+            if (originalLog == null) {
+              await controller.addLog(draft);
+            } else {
+              await controller.amendLog(
+                originalLogId: originalLog.id,
+                draft: draft,
+              );
+            }
           },
         );
       },
     );
   }
+
+  Future<void> _voidLog(MedicationLogEntry log) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('作废这条记录？'),
+        content: const Text('记录会保留并标注为已作废，不会从历史中删除。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('返回'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('作废'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref
+          .read(medicationControllerProvider.notifier)
+          .voidLog(logId: log.id, reason: '用户作废');
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+
+  Future<void> _resolveReminder(
+    MedicationReminder reminder,
+    MedicationReminderStatus status,
+  ) async {
+    try {
+      await ref
+          .read(medicationControllerProvider.notifier)
+          .resolveReminder(reminderId: reminder.id, status: status);
+      if (mounted) {
+        final label = switch (status) {
+          MedicationReminderStatus.completed => '已完成提醒',
+          MedicationReminderStatus.skipped => '已跳过提醒',
+          MedicationReminderStatus.canceled => '已取消提醒',
+          MedicationReminderStatus.scheduled => '',
+        };
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(label)));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+}
+
+class _MedicationHero extends StatelessWidget {
+  const _MedicationHero({required this.snapshot, required this.onAddLog});
+
+  final MedicationSnapshot snapshot;
+  final VoidCallback onAddLog;
+
+  @override
+  Widget build(BuildContext context) => CycleCard(
+    padding: const EdgeInsets.fromLTRB(18, 12, 10, 12),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('家庭药箱', style: TextStyle(fontSize: 24)),
+              const SizedBox(height: 5),
+              Text(
+                snapshot.todayLogCount == 0
+                    ? '今天还没有用药记录'
+                    : '今天已记录 ${snapshot.todayLogCount} 次用药',
+                style: const TextStyle(
+                  color: Color(0xFF786B72),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: onAddLog,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('记录用药'),
+              ),
+            ],
+          ),
+        ),
+        Transform.translate(
+          offset: const Offset(4, -10),
+          child: Image.asset(
+            DateTime.now().hour >= 7 && DateTime.now().hour < 17
+                ? 'assets/mascots/day_explorer_cat.png'
+                : 'assets/mascots/night_astronaut_cat.png',
+            width: 90,
+            height: 96,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _MedicationTimeline extends StatelessWidget {
+  const _MedicationTimeline({required this.snapshot, required this.onAddLog});
+
+  final MedicationSnapshot snapshot;
+  final VoidCallback onAddLog;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final todayLogs = snapshot.logs
+        .where((item) => !item.isVoided && _isSameDay(item.takenAt, now))
+        .take(3)
+        .toList();
+    final nextReminder = snapshot.upcomingReminders.isEmpty
+        ? null
+        : snapshot.upcomingReminders.first;
+
+    return CycleCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.schedule_rounded,
+                size: 19,
+                color: AppColors.green,
+              ),
+              const SizedBox(width: 7),
+              const Text('今日用药', style: TextStyle(fontSize: 18)),
+              const Spacer(),
+              Text(
+                '${todayLogs.length} 条记录',
+                style: const TextStyle(
+                  color: Color(0xFF786B72),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (todayLogs.isEmpty)
+            _TimelineEmpty(onAddLog: onAddLog)
+          else
+            for (final log in todayLogs) _TimelineRow(log: log),
+          if (nextReminder != null) ...[
+            const Divider(height: 20),
+            Row(
+              children: [
+                const Icon(
+                  Icons.notifications_active_rounded,
+                  size: 18,
+                  color: AppColors.orange,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '下一次：${_formatDateTime(nextReminder.remindAt)} · '
+                    '${nextReminder.memberName} ${nextReminder.medicineName}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineEmpty extends StatelessWidget {
+  const _TimelineEmpty({required this.onAddLog});
+  final VoidCallback onAddLog;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: AppColors.green.withValues(alpha: 0.14),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.medication_rounded,
+          size: 18,
+          color: AppColors.green,
+        ),
+      ),
+      const SizedBox(width: 10),
+      const Expanded(
+        child: Text(
+          '需要时再记一笔，药品和成员可以稍后补充。',
+          style: TextStyle(
+            color: Color(0xFF786B72),
+            fontSize: 13,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ),
+      TextButton(onPressed: onAddLog, child: const Text('去记录')),
+    ],
+  );
+}
+
+class _TimelineRow extends StatelessWidget {
+  const _TimelineRow({required this.log});
+  final MedicationLogEntry log;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 9),
+    child: Row(
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: AppColors.green.withValues(alpha: 0.16),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.check_rounded,
+            color: AppColors.green,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 43,
+          child: Text(
+            _formatTime(log.takenAt),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            '${log.memberName} · ${log.medicineName}'
+            '${log.dosageText.isEmpty ? '' : ' · ${log.dosageText}'}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _SafetyNotice extends StatelessWidget {
@@ -128,11 +435,8 @@ class _SafetyNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.blue.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(18),
-      ),
+    return Card(
+      color: const Color(0xF7F4FCFA),
       child: const Padding(
         padding: EdgeInsets.all(14),
         child: Row(
@@ -145,7 +449,7 @@ class _SafetyNotice extends StatelessWidget {
                 '这里只记录事实，不提供诊断、处方或剂量建议；用药请以医生和药品说明书为准。',
                 style: TextStyle(
                   color: AppColors.ink,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                   height: 1.45,
                 ),
               ),
@@ -209,6 +513,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: const Color(0xF7FFFCF8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         child: Column(
@@ -218,7 +523,7 @@ class _SummaryCard extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontSize: 24,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w400,
               ),
             ),
             const SizedBox(height: 4),
@@ -229,7 +534,7 @@ class _SummaryCard extends StatelessWidget {
                 maxLines: 1,
                 style: TextStyle(
                   color: AppColors.ink.withValues(alpha: 0.68),
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -241,9 +546,17 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _MedicationAlertCard extends StatelessWidget {
-  const _MedicationAlertCard({required this.snapshot});
+  const _MedicationAlertCard({
+    required this.snapshot,
+    required this.onResolveReminder,
+  });
 
   final MedicationSnapshot snapshot;
+  final Future<void> Function(
+    MedicationReminder reminder,
+    MedicationReminderStatus status,
+  )
+  onResolveReminder;
 
   @override
   Widget build(BuildContext context) {
@@ -251,8 +564,6 @@ class _MedicationAlertCard extends StatelessWidget {
       if (snapshot.expiredCount > 0) '有 ${snapshot.expiredCount} 个药品已过期',
       if (snapshot.expiringSoonCount > 0)
         '有 ${snapshot.expiringSoonCount} 个药品 30 天内到期',
-      for (final reminder in snapshot.upcomingReminders)
-        '${_formatDateTime(reminder.remindAt)} ${reminder.memberName} ${reminder.medicineName}',
     ];
 
     return Card(
@@ -287,7 +598,7 @@ class _MedicationAlertCard extends StatelessWidget {
                       '•',
                       style: TextStyle(
                         color: AppColors.coral,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -296,7 +607,7 @@ class _MedicationAlertCard extends StatelessWidget {
                         alert,
                         style: const TextStyle(
                           color: AppColors.ink,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w400,
                           height: 1.35,
                         ),
                       ),
@@ -304,11 +615,72 @@ class _MedicationAlertCard extends StatelessWidget {
                   ],
                 ),
               ),
+            for (final reminder in snapshot.upcomingReminders) ...[
+              const SizedBox(height: 6),
+              _ReminderActions(
+                reminder: reminder,
+                onResolve: onResolveReminder,
+              ),
+            ],
           ],
         ),
       ),
     );
   }
+}
+
+class _ReminderActions extends StatelessWidget {
+  const _ReminderActions({required this.reminder, required this.onResolve});
+
+  final MedicationReminder reminder;
+  final Future<void> Function(
+    MedicationReminder reminder,
+    MedicationReminderStatus status,
+  )
+  onResolve;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: AppColors.orange.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${_formatDateTime(reminder.remindAt)} · ${reminder.memberName} ${reminder.medicineName}',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(
+              spacing: 2,
+              children: [
+                TextButton(
+                  onPressed: () =>
+                      onResolve(reminder, MedicationReminderStatus.completed),
+                  child: const Text('完成'),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      onResolve(reminder, MedicationReminderStatus.skipped),
+                  child: const Text('跳过'),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      onResolve(reminder, MedicationReminderStatus.canceled),
+                  child: const Text('取消'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _MedicationSegments extends StatelessWidget {
@@ -319,28 +691,102 @@ class _MedicationSegments extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: SegmentedButton<_MedicationSection>(
-        selected: {selected},
-        onSelectionChanged: (value) => onChanged(value.first),
-        segments: const [
-          ButtonSegment(
-            value: _MedicationSection.medicines,
-            icon: Icon(Icons.medication_liquid_rounded),
-            label: Text('药品'),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xF2FFFCF8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.95)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: [
+            _MedicationSegmentButton(
+              section: _MedicationSection.logs,
+              selected: selected,
+              icon: Icons.edit_note_rounded,
+              label: '记录',
+              onTap: onChanged,
+            ),
+            _MedicationSegmentButton(
+              section: _MedicationSection.medicines,
+              selected: selected,
+              icon: Icons.medication_liquid_rounded,
+              label: '药品',
+              onTap: onChanged,
+            ),
+            _MedicationSegmentButton(
+              section: _MedicationSection.members,
+              selected: selected,
+              icon: Icons.groups_rounded,
+              label: '成员',
+              onTap: onChanged,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MedicationSegmentButton extends StatelessWidget {
+  const _MedicationSegmentButton({
+    required this.section,
+    required this.selected,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final _MedicationSection section;
+  final _MedicationSection selected;
+  final IconData icon;
+  final String label;
+  final ValueChanged<_MedicationSection> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = selected == section;
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => onTap(section),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.green.withValues(alpha: 0.18)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isSelected
+                      ? AppColors.green
+                      : AppColors.ink.withValues(alpha: 0.62),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected
+                        ? AppColors.ink
+                        : AppColors.ink.withValues(alpha: 0.62),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
           ),
-          ButtonSegment(
-            value: _MedicationSection.logs,
-            icon: Icon(Icons.edit_note_rounded),
-            label: Text('记录'),
-          ),
-          ButtonSegment(
-            value: _MedicationSection.members,
-            icon: Icon(Icons.groups_rounded),
-            label: Text('成员'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -419,7 +865,7 @@ class _MedicineCard extends StatelessWidget {
                           medicine.specification,
                           style: TextStyle(
                             color: AppColors.ink.withValues(alpha: 0.62),
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                     ],
@@ -463,7 +909,7 @@ class _MedicineCard extends StatelessWidget {
                 medicine.usageNote,
                 style: TextStyle(
                   color: AppColors.ink.withValues(alpha: 0.72),
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   height: 1.45,
                 ),
               ),
@@ -476,10 +922,17 @@ class _MedicineCard extends StatelessWidget {
 }
 
 class _LogSection extends StatelessWidget {
-  const _LogSection({required this.logs, required this.onAdd});
+  const _LogSection({
+    required this.logs,
+    required this.onAdd,
+    required this.onAmend,
+    required this.onVoid,
+  });
 
   final List<MedicationLogEntry> logs;
   final VoidCallback onAdd;
+  final ValueChanged<MedicationLogEntry> onAmend;
+  final ValueChanged<MedicationLogEntry> onVoid;
 
   @override
   Widget build(BuildContext context) {
@@ -502,7 +955,7 @@ class _LogSection extends StatelessWidget {
           )
         else
           for (final log in logs) ...[
-            _LogCard(log: log),
+            _LogCard(log: log, onAmend: onAmend, onVoid: onVoid),
             const SizedBox(height: 12),
           ],
       ],
@@ -511,9 +964,15 @@ class _LogSection extends StatelessWidget {
 }
 
 class _LogCard extends StatelessWidget {
-  const _LogCard({required this.log});
+  const _LogCard({
+    required this.log,
+    required this.onAmend,
+    required this.onVoid,
+  });
 
   final MedicationLogEntry log;
+  final ValueChanged<MedicationLogEntry> onAmend;
+  final ValueChanged<MedicationLogEntry> onVoid;
 
   @override
   Widget build(BuildContext context) {
@@ -532,7 +991,10 @@ class _LogCard extends StatelessWidget {
         ),
         title: Text(
           '${log.memberName} · ${log.medicineName}',
-          style: const TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(
+            fontWeight: FontWeight.w400,
+            decoration: log.isVoided ? TextDecoration.lineThrough : null,
+          ),
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
@@ -545,13 +1007,38 @@ class _LogCard extends StatelessWidget {
               if (log.note.isNotEmpty) Text('备注：${log.note}'),
               if (log.nextReminderAt != null)
                 Text('下次提醒：${_formatDateTime(log.nextReminderAt!)}'),
+              if (log.isVoided)
+                Text(
+                  '已作废：${log.voidReason}',
+                  style: const TextStyle(color: AppColors.coral),
+                ),
             ],
           ),
         ),
+        trailing: log.isVoided
+            ? const Icon(Icons.history_rounded, color: AppColors.coral)
+            : PopupMenuButton<_LogAction>(
+                onSelected: (action) {
+                  if (action == _LogAction.amend) {
+                    onAmend(log);
+                  } else {
+                    onVoid(log);
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: _LogAction.amend, child: Text('更正记录')),
+                  PopupMenuItem(
+                    value: _LogAction.voidRecord,
+                    child: Text('作废记录'),
+                  ),
+                ],
+              ),
       ),
     );
   }
 }
+
+enum _LogAction { amend, voidRecord }
 
 class _MemberSection extends StatelessWidget {
   const _MemberSection({required this.members, required this.onAdd});
@@ -619,7 +1106,7 @@ class _MemberCard extends StatelessWidget {
                     member.subtitle,
                     style: TextStyle(
                       color: AppColors.ink.withValues(alpha: 0.62),
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                   if (member.allergyNote.isNotEmpty) ...[
@@ -663,24 +1150,30 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
+    return Card(
+      color: const Color(0xEFFFFCF8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 10, 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
             ),
-          ),
+            FilledButton.icon(
+              onPressed: onAction,
+              icon: Icon(icon),
+              label: Text(actionLabel),
+            ),
+          ],
         ),
-        FilledButton.icon(
-          onPressed: onAction,
-          icon: Icon(icon),
-          label: Text(actionLabel),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -720,7 +1213,7 @@ class _EmptyCard extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.ink.withValues(alpha: 0.66),
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
                 height: 1.45,
               ),
             ),
@@ -755,7 +1248,7 @@ class _InfoChip extends StatelessWidget {
       label: Text(label),
       backgroundColor: color.withValues(alpha: 0.12),
       side: BorderSide.none,
-      labelStyle: const TextStyle(fontWeight: FontWeight.w800),
+      labelStyle: const TextStyle(fontWeight: FontWeight.w400),
     );
   }
 }
@@ -783,7 +1276,7 @@ class _InlineNote extends StatelessWidget {
             text,
             style: TextStyle(
               color: AppColors.ink.withValues(alpha: 0.72),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               height: 1.35,
             ),
           ),
@@ -1051,10 +1544,15 @@ class _MedicineFormState extends State<_MedicineForm> {
 }
 
 class _LogForm extends StatefulWidget {
-  const _LogForm({required this.snapshot, required this.onSubmit});
+  const _LogForm({
+    required this.snapshot,
+    required this.onSubmit,
+    this.originalLog,
+  });
 
   final MedicationSnapshot snapshot;
   final Future<void> Function(MedicationLogDraft draft) onSubmit;
+  final MedicationLogEntry? originalLog;
 
   @override
   State<_LogForm> createState() => _LogFormState();
@@ -1072,6 +1570,20 @@ class _LogFormState extends State<_LogForm> {
   DateTime _takenAt = DateTime.now();
   DateTime? _nextReminderAt;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final original = widget.originalLog;
+    if (original == null) return;
+    _memberController.text = original.memberName;
+    _medicineController.text = original.medicineName;
+    _dosageController.text = original.dosageText;
+    _reasonController.text = original.reason;
+    _noteController.text = original.note;
+    _takenAt = original.takenAt;
+    _nextReminderAt = original.nextReminderAt;
+  }
 
   @override
   void dispose() {
@@ -1206,7 +1718,7 @@ class _LogFormState extends State<_LogForm> {
   @override
   Widget build(BuildContext context) {
     return _BottomSheetScaffold(
-      title: '记录用药',
+      title: widget.originalLog == null ? '记录用药' : '更正用药记录',
       child: Form(
         key: _formKey,
         child: Column(
@@ -1411,7 +1923,7 @@ class _PickerField extends StatelessWidget {
       ),
       child: ListTile(
         leading: Icon(icon),
-        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w400)),
         subtitle: Text(value),
         trailing: onClear == null
             ? const Icon(Icons.chevron_right_rounded)
@@ -1538,3 +2050,11 @@ String _formatDateTime(DateTime date) {
   return '${_formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:'
       '${date.minute.toString().padLeft(2, '0')}';
 }
+
+String _formatTime(DateTime date) =>
+    '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+
+bool _isSameDay(DateTime left, DateTime right) =>
+    left.year == right.year &&
+    left.month == right.month &&
+    left.day == right.day;

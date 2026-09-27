@@ -93,6 +93,7 @@ class _PreviewHome extends HomeController {
       ),
     ],
     badges: BadgeSummary(earnedCount: 0, totalCount: 3),
+    isRestDay: false,
     isStale: false,
     isSyncing: false,
   );

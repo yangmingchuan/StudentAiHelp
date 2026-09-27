@@ -25,6 +25,7 @@ class GrowthHistoryRepository {
   final LocalDatabase _db;
 
   Future<GrowthHistorySnapshot> load({int days = 28}) async {
+    if (days < 1) throw ArgumentError.value(days, 'days', '至少需要一天');
     final end = _dateOnly(DateTime.now());
     final start = end.subtract(Duration(days: days - 1));
     final child = await (_db.select(
@@ -46,6 +47,12 @@ class GrowthHistoryRepository {
         totalTasks: 0,
         currentStreak: 0,
         bestStreak: 0,
+        weeklyReview: const GrowthWeeklyReview(
+          doneCount: 0,
+          totalCount: 0,
+          restDays: 0,
+          changeFromPrevious: 0,
+        ),
       );
     }
     final habits =
@@ -65,13 +72,24 @@ class GrowthHistoryRepository {
     for (final record in records) {
       (recordsByDate[record.recordDate] ??= {})[record.habitId] = record;
     }
+    final restDays =
+        await (_db.select(_db.localRestDays)..where(
+              (table) =>
+                  table.childId.equals(child.id) &
+                  table.restDate.isBiggerOrEqualValue(growthDateKey(start)) &
+                  table.restDate.isSmallerOrEqualValue(growthDateKey(end)),
+            ))
+            .get();
+    final restDayKeys = restDays.map((day) => day.restDate).toSet();
     final visibleHabits = habits
         .where((habit) => habit.deletedAt == null)
         .toList();
     final daysList = <GrowthHistoryDay>[];
     for (var offset = 0; offset < days; offset += 1) {
       final date = start.add(Duration(days: offset));
-      final recordsForDay = recordsByDate[growthDateKey(date)] ?? const {};
+      final dateKey = growthDateKey(date);
+      final recordsForDay = recordsByDate[dateKey] ?? const {};
+      final isRestDay = restDayKeys.contains(dateKey);
       // A task removed today must remain visible in the dates where it was
       // completed. Otherwise the history would silently rewrite a past win.
       final habitsForDay = [
@@ -101,6 +119,7 @@ class GrowthHistoryRepository {
               .where((task) => task.status == TaskStatus.skipped)
               .length,
           tasks: tasks,
+          isRestDay: isRestDay,
         ),
       );
     }
@@ -111,18 +130,22 @@ class GrowthHistoryRepository {
       totalTasks: visibleHabits.length,
       currentStreak: streaks.$1,
       bestStreak: streaks.$2,
+      weeklyReview: _weeklyReview(daysList),
     );
   }
 
   (int, int) _streaks(List<GrowthHistoryDay> days) {
     var current = 0;
     for (final day in days.reversed) {
+      if (day.isRestDay) continue;
+      if (day.date == days.last.date && !day.isFull) continue;
       if (!day.isFull) break;
       current += 1;
     }
     var best = 0;
     var running = 0;
     for (final day in days) {
+      if (day.isRestDay) continue;
       if (day.isFull) {
         running += 1;
         if (running > best) best = running;
@@ -131,6 +154,30 @@ class GrowthHistoryRepository {
       }
     }
     return (current, best);
+  }
+
+  GrowthWeeklyReview _weeklyReview(List<GrowthHistoryDay> days) {
+    final split = (days.length - 7).clamp(0, days.length);
+    final current = days.sublist(split);
+    final previous = days.sublist((days.length - 14).clamp(0, split), split);
+    int total(List<GrowthHistoryDay> source) => source
+        .where((day) => !day.isRestDay)
+        .fold(0, (sum, day) => sum + day.totalCount);
+    int done(List<GrowthHistoryDay> source) => source
+        .where((day) => !day.isRestDay)
+        .fold(0, (sum, day) => sum + day.doneCount);
+    final currentTotal = total(current);
+    final previousTotal = total(previous);
+    final currentRate = currentTotal == 0 ? 0.0 : done(current) / currentTotal;
+    final previousRate = previousTotal == 0
+        ? 0.0
+        : done(previous) / previousTotal;
+    return GrowthWeeklyReview(
+      doneCount: done(current),
+      totalCount: currentTotal,
+      restDays: current.where((day) => day.isRestDay).length,
+      changeFromPrevious: currentRate - previousRate,
+    );
   }
 
   DateTime _dateOnly(DateTime value) =>

@@ -1,3 +1,4 @@
+import 'package:little_hero/core/widgets/tab_header.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -171,35 +172,27 @@ class CycleHeading extends StatelessWidget {
     final isDay =
         context.dependOnInheritedWidgetOfExactType<_CycleDayScope>()?.isDay ??
         true;
-    return CycleCard(
-      padding: const EdgeInsets.fromLTRB(18, 10, 8, 10),
-      child: Row(
+    return TabHeader(
+      showSurface: false,
+      isDay: isDay,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 24, color: cycleInk),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF786B72),
-                  ),
-                ),
-              ],
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 24,
+              color: isDay ? cycleInk : Colors.white,
             ),
           ),
-          Image.asset(
-            isDay
-                ? 'assets/mascots/day_explorer_cat.png'
-                : 'assets/mascots/night_astronaut_cat.png',
-            width: 68,
-            height: 76,
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDay ? cycleInk : const Color(0xFFDDEBFF),
+            ),
           ),
         ],
       ),
@@ -252,6 +245,6 @@ class CycleNumberField extends StatelessWidget {
 String cycleDateLabel(DateTime date) =>
     '${date.year}年${date.month}月${date.day}日';
 EdgeInsets cyclePagePadding(BuildContext context) =>
-    EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.paddingOf(context).bottom + 24);
+    EdgeInsets.fromLTRB(16, 6, 16, MediaQuery.paddingOf(context).bottom + 24);
 String cycleErrorText(Object error) =>
     error is ArgumentError ? error.message.toString() : '暂时无法保存，请稍后重试';

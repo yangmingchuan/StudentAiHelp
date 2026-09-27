@@ -4,6 +4,7 @@ class HomeSnapshot {
     required this.assets,
     required this.tasks,
     required this.badges,
+    required this.isRestDay,
     required this.isStale,
     required this.isSyncing,
     this.message,
@@ -13,6 +14,7 @@ class HomeSnapshot {
   final AssetSummary assets;
   final List<TaskSummary> tasks;
   final BadgeSummary badges;
+  final bool isRestDay;
   final bool isStale;
   final bool isSyncing;
   final String? message;

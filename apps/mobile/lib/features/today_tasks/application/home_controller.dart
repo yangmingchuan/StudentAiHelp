@@ -41,6 +41,17 @@ class HomeController extends AsyncNotifier<HomeSnapshot> {
     }
   }
 
+  Future<void> setTodayRestDay(bool isRestDay) async {
+    final snapshot = await _repository.setTodayRestDay(isRestDay: isRestDay);
+    state = AsyncData(snapshot);
+  }
+
+  Future<void> refreshLocal() async {
+    state = await AsyncValue.guard(
+      () => _repository.load(refreshRemote: false),
+    );
+  }
+
   Future<void> addTask(String name) async {
     state = await AsyncValue.guard(() => _repository.addTask(name: name));
   }

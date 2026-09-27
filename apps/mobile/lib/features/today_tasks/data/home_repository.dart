@@ -26,9 +26,15 @@ class HomeRepository {
     await _ensureLocalDefaults();
     if (refreshRemote) {
       try {
+        await _flushPendingOperations();
+        final pending =
+            await (_db.select(_db.syncOperations)
+                  ..where((table) => table.status.equals('pending'))
+                  ..limit(1))
+                .get();
+        if (pending.isNotEmpty) throw StateError('本地更改尚未同步');
         final remote = await _api.bootstrap();
         await _upsertBootstrap(remote);
-        await _flushPendingOperations();
         return _readSnapshot(isStale: false);
       } catch (_) {
         return _readSnapshot(isStale: true, message: '正在使用本地缓存');
@@ -45,6 +51,9 @@ class HomeRepository {
     await _db.transaction(() async {
       final child = await _activeChild();
       final today = _today();
+      if (await _isRestDay(child.id, today)) {
+        throw StateError('今天是家长设置的休息日，不需要打卡');
+      }
       final oldRecord = await _recordFor(child.id, taskId, today);
       final oldStatus = TaskStatus.parse(oldRecord?.status ?? 'none');
       final appliedStatus = oldStatus == nextStatus
@@ -136,6 +145,52 @@ class HomeRepository {
     });
     unawaitedFlush();
     return _readSnapshot(isStale: false, isSyncing: true);
+  }
+
+  Future<HomeSnapshot> setTodayRestDay({required bool isRestDay}) async {
+    await _db.transaction(() async {
+      final child = await _activeChild();
+      final today = _today();
+      if (isRestDay) {
+        final completed =
+            await (_db.select(_db.localHabitRecords)..where(
+                  (table) =>
+                      table.childId.equals(child.id) &
+                      table.recordDate.equals(today) &
+                      table.status.equals('done'),
+                ))
+                .get();
+        if (completed.isNotEmpty) {
+          throw StateError('请先取消今天已经完成的任务，再设为休息日');
+        }
+        await _db
+            .into(_db.localRestDays)
+            .insertOnConflictUpdate(
+              LocalRestDaysCompanion.insert(childId: child.id, restDate: today),
+            );
+        await _applyDailyAward(
+          childId: child.id,
+          date: today,
+          awardType: 'full_completion',
+          stars: 2,
+          shouldExist: false,
+        );
+        await _applyDailyAward(
+          childId: child.id,
+          date: today,
+          awardType: 'seven_day_streak',
+          stars: 5,
+          shouldExist: false,
+        );
+      } else {
+        await (_db.delete(_db.localRestDays)..where(
+              (table) =>
+                  table.childId.equals(child.id) & table.restDate.equals(today),
+            ))
+            .go();
+      }
+    });
+    return _readSnapshot(isStale: false);
   }
 
   Future<HomeSnapshot> updateTask({
@@ -343,6 +398,17 @@ class HomeRepository {
     final childId = _asInt(child['id'], fallback: 1);
 
     await _db.transaction(() async {
+      final redemptions =
+          await (_db.select(_db.localRewardRedemptions)..where(
+                (table) =>
+                    table.childId.equals(childId) &
+                    table.status.isIn(['pending', 'approved']),
+              ))
+              .get();
+      final reservedStars = redemptions.fold<int>(
+        0,
+        (sum, redemption) => sum + redemption.costStars,
+      );
       await _db
           .into(_db.localChildren)
           .insertOnConflictUpdate(
@@ -373,7 +439,13 @@ class HomeRepository {
           .insertOnConflictUpdate(
             LocalAssetSnapshotsCompanion.insert(
               childId: Value(childId),
-              availableStars: Value(_asInt(assets['availableStars'])),
+              // Rewards are local-first until the server gains a matching
+              // endpoint. Keep pending and approved applications deducted across a remote
+              // bootstrap so a refresh cannot make the same stars spendable
+              // twice.
+              availableStars: Value(
+                _asInt(assets['availableStars']) - reservedStars,
+              ),
               lifetimeStars: Value(_asInt(assets['lifetimeStars'])),
               badgeCount: Value(_asInt(badges['earnedCount'])),
               heartsRemaining: Value(_asInt(hearts['remaining'], fallback: 10)),
@@ -430,6 +502,7 @@ class HomeRepository {
     final badges = await (_db.select(
       _db.localChildBadges,
     )..where((table) => table.childId.equals(child.id))).get();
+    final isRestDay = await _isRestDay(child.id, today);
 
     return HomeSnapshot(
       child: ChildSummary(
@@ -440,7 +513,7 @@ class HomeRepository {
         needsProfileSetup: child.needsProfileSetup,
       ),
       assets: AssetSummary(
-        availableStars: asset?.availableStars ?? 0,
+        availableStars: (asset?.availableStars ?? 0).clamp(0, 1 << 30),
         lifetimeStars: asset?.lifetimeStars ?? 0,
         badgeCount: badges.length,
         heartsRemaining: asset?.heartsRemaining ?? 10,
@@ -457,6 +530,7 @@ class HomeRepository {
           ),
       ],
       badges: BadgeSummary(earnedCount: badges.length, totalCount: 3),
+      isRestDay: isRestDay,
       isStale: isStale,
       isSyncing: isSyncing,
       message: message,
@@ -523,6 +597,7 @@ class HomeRepository {
   }
 
   Future<bool> _isFullCompletionDay(int childId, String date) async {
+    if (await _isRestDay(childId, date)) return false;
     final tasks = await _activeTasks(childId);
     if (tasks.isEmpty) {
       return false;
@@ -544,15 +619,30 @@ class HomeRepository {
     String today, {
     required int days,
   }) async {
-    final date = DateTime.parse(today);
-    for (var offset = 0; offset < days; offset += 1) {
-      final day = _formatDate(date.subtract(Duration(days: offset)));
+    var cursor = DateTime.parse(today);
+    var eligibleDays = 0;
+    while (eligibleDays < days) {
+      final day = _formatDate(cursor);
+      if (await _isRestDay(childId, day)) {
+        cursor = cursor.subtract(const Duration(days: 1));
+        continue;
+      }
       if (!await _isFullCompletionDay(childId, day)) {
         return false;
       }
+      eligibleDays += 1;
+      cursor = cursor.subtract(const Duration(days: 1));
     }
     return true;
   }
+
+  Future<bool> _isRestDay(int childId, String date) async =>
+      (await (_db.select(_db.localRestDays)..where(
+            (table) =>
+                table.childId.equals(childId) & table.restDate.equals(date),
+          ))
+          .getSingleOrNull()) !=
+      null;
 
   Future<void> _applyDailyAward({
     required int childId,
@@ -599,9 +689,9 @@ class HomeRepository {
     final asset = await (_db.select(
       _db.localAssetSnapshots,
     )..where((table) => table.childId.equals(childId))).getSingleOrNull();
-    final available = ((asset?.availableStars ?? 0) + delta)
-        .clamp(0, 1 << 30)
-        .toInt();
+    // Keep debt when a completed task is undone after spending its stars.
+    // Clamping here would create free stars on a later rejection/refund.
+    final available = (asset?.availableStars ?? 0) + delta;
     final lifetime = ((asset?.lifetimeStars ?? 0) + delta)
         .clamp(0, 1 << 30)
         .toInt();

@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:little_hero/app/app.dart';
+import 'package:little_hero/core/widgets/tab_header.dart';
 import 'package:little_hero/features/auth/application/auth_controller.dart';
 import 'package:little_hero/features/auth/domain/auth_session.dart';
 import 'package:little_hero/features/child_profile/data/growth_history_repository.dart';
+import 'package:little_hero/features/child_profile/data/growth_rewards_repository.dart';
 import 'package:little_hero/features/child_profile/domain/growth_history.dart';
+import 'package:little_hero/features/child_profile/domain/growth_rewards.dart';
 import 'package:little_hero/features/mama_tools/application/cycle_controller.dart';
 import 'package:little_hero/features/mama_tools/domain/cycle_models.dart';
 import 'package:little_hero/features/medication/application/medication_controller.dart';
 import 'package:little_hero/features/medication/domain/medication_models.dart';
+import 'package:little_hero/features/medication/presentation/medication_home_page.dart';
 import 'package:little_hero/features/today_tasks/application/home_controller.dart';
 import 'package:little_hero/features/today_tasks/domain/home_snapshot.dart';
 
@@ -75,6 +79,7 @@ class _TestHomeController extends HomeController {
       ),
       tasks: _tasks,
       badges: const BadgeSummary(earnedCount: 0, totalCount: 3),
+      isRestDay: false,
       isStale: false,
       isSyncing: false,
     );
@@ -207,10 +212,136 @@ GrowthHistorySnapshot _testHistory() {
     totalTasks: 1,
     currentStreak: 1,
     bestStreak: 1,
+    weeklyReview: const GrowthWeeklyReview(
+      doneCount: 1,
+      totalCount: 7,
+      restDays: 0,
+      changeFromPrevious: 0,
+    ),
+  );
+}
+
+const _testRewards = GrowthRewardsSnapshot(rewards: [], redemptions: []);
+
+class _EmptyMedicationController extends MedicationController {
+  @override
+  Future<MedicationSnapshot> build() async => const MedicationSnapshot(
+    members: [],
+    medicines: [],
+    logs: [],
+    upcomingReminders: [],
+    todayLogCount: 0,
+    expiringSoonCount: 0,
+    expiredCount: 0,
   );
 }
 
 void main() {
+  testWidgets(
+    'empty medication sections have one action and fit narrow screens',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            medicationControllerProvider.overrideWith(
+              _EmptyMedicationController.new,
+            ),
+          ],
+          child: MaterialApp(
+            home: MediaQuery(
+              data: const MediaQueryData(
+                size: Size(320, 900),
+                textScaler: TextScaler.linear(1.3),
+              ),
+              child: const Scaffold(body: MedicationHomePage()),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('记录用药'), findsOneWidget);
+      expect(find.text('还没有用药记录'), findsOneWidget);
+      expect(find.text('今日用药'), findsNothing);
+      expect(find.text('提醒'), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('药品'));
+      await tester.pumpAndSettle();
+      expect(find.text('添加药品'), findsOneWidget);
+      expect(find.text('先添加常备药'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('成员'));
+      await tester.pumpAndSettle();
+      expect(find.text('添加成员'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'reward dialog validates input and can cancel without disposed controller errors',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authControllerProvider.overrideWith(_SignedInAuthController.new),
+            homeControllerProvider.overrideWith(_TestHomeController.new),
+            growthHistoryProvider.overrideWith((ref) async => _testHistory()),
+            growthRewardsProvider.overrideWith((ref) async => _testRewards),
+          ],
+          child: const LittleHeroApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('我的'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('家长设置'),
+        250,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.ensureVisible(find.text('家长设置'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('家长设置'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byTooltip('新增奖励'),
+        250,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.ensureVisible(find.byTooltip('新增奖励'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('新增奖励'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('添加'));
+      await tester.pumpAndSettle();
+      expect(find.text('请填写奖励名称，星星数量需为 1～999 的整数'), findsOneWidget);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.byType(AlertDialog), findsNothing);
+      await tester.scrollUntilVisible(
+        find.text('退出登录'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.ensureVisible(find.text('退出登录'));
+      await tester.pumpAndSettle();
+      expect(find.text('退出登录'), findsOneWidget);
+      await tester.tap(find.text('退出登录'));
+      await tester.pumpAndSettle();
+      expect(find.text('退出登录？'), findsOneWidget);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('退出登录'), findsNothing);
+      expect(find.text('家长设置'), findsOneWidget);
+      expect(find.text('我的'), findsOneWidget);
+    },
+  );
+
   testWidgets('starts on tasks and opens mama and medication tabs', (
     tester,
   ) async {
@@ -224,6 +355,7 @@ void main() {
             _TestMedicationController.new,
           ),
           growthHistoryProvider.overrideWith((ref) async => _testHistory()),
+          growthRewardsProvider.overrideWith((ref) async => _testRewards),
         ],
         child: const LittleHeroApp(),
       ),
@@ -259,6 +391,18 @@ void main() {
     expect(find.text('用药'), findsOneWidget);
     expect(find.text('我的'), findsOneWidget);
 
+    final headerRect = tester.getRect(find.byKey(TabHeader.frameKey));
+    expect(headerRect.height, 120);
+    expect(
+      tester.widget<TabHeader>(find.byType(TabHeader)).showSurface,
+      isFalse,
+    );
+    final mascotRect = tester.getRect(find.byKey(TabHeader.mascotKey));
+    void expectSameHeaderGeometry() {
+      expect(tester.getRect(find.byKey(TabHeader.frameKey)), headerRect);
+      expect(tester.getRect(find.byKey(TabHeader.mascotKey)), mascotRect);
+    }
+
     // Check resolved text spans, including inherited Material label styles.
     for (final richText in tester.widgetList<RichText>(find.byType(RichText))) {
       void checkWeight(InlineSpan span, FontWeight inherited) {
@@ -281,6 +425,11 @@ void main() {
     await tester.tap(find.text('经期'));
     await tester.pumpAndSettle();
     expect(find.text('经期手记'), findsOneWidget);
+    expect(
+      tester.widget<TabHeader>(find.byType(TabHeader)).showSurface,
+      isFalse,
+    );
+    expectSameHeaderGeometry();
     expect(find.text('记录今天'), findsOneWidget);
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
     await tester.pumpAndSettle();
@@ -289,7 +438,10 @@ void main() {
     await tester.tap(find.text('用药'));
     await tester.pumpAndSettle();
     expect(find.text('家庭药箱'), findsOneWidget);
-    expect(find.text('今日用药'), findsOneWidget);
+    expectSameHeaderGeometry();
+    expect(find.text('今日 1 条记录 · 1 种药品'), findsOneWidget);
+    expect(find.text('今日用药'), findsNothing);
+    expect(find.text('记录用药'), findsOneWidget);
     await tester.drag(find.byType(ListView).last, const Offset(0, -500));
     await tester.pumpAndSettle();
     expect(find.text('用药记录'), findsOneWidget);
@@ -297,6 +449,7 @@ void main() {
     await tester.tap(find.text('我的'));
     await tester.pumpAndSettle();
     expect(find.text('成长进度'), findsOneWidget);
+    expectSameHeaderGeometry();
     expect(find.text('小勇士'), findsWidgets);
     expect(find.text('连续完成'), findsOneWidget);
     await tester.tap(find.text('历史详情'));
@@ -305,7 +458,24 @@ void main() {
     expect(find.text('28 天打卡表'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView).last, const Offset(0, -360));
+    expect(find.text('退出登录'), findsNothing);
+    expect(find.text('Todo 管理'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('家长设置'),
+      280,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.ensureVisible(find.text('家长设置'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('家长设置'));
+    await tester.pumpAndSettle();
+    expect(find.text('我的'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('Todo 管理'),
+      280,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.drag(find.byType(ListView).last, const Offset(0, -180));
     await tester.pumpAndSettle();
     expect(find.text('Todo 管理'), findsOneWidget);
 

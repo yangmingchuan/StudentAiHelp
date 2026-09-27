@@ -1,3 +1,4 @@
+import 'package:little_hero/core/widgets/tab_header.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -137,7 +138,7 @@ class _TodayTasksPageState extends ConsumerState<TodayTasksPage>
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
                         sliver: SliverToBoxAdapter(
                           child: _Hero(
                             theme: theme,
@@ -159,6 +160,13 @@ class _TodayTasksPageState extends ConsumerState<TodayTasksPage>
                             ),
                           ),
                         ),
+                      if (snapshot.isRestDay)
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                          sliver: SliverToBoxAdapter(
+                            child: _RestDayNotice(theme: theme),
+                          ),
+                        ),
                       SliverPadding(
                         padding: EdgeInsets.fromLTRB(
                           20,
@@ -173,8 +181,12 @@ class _TodayTasksPageState extends ConsumerState<TodayTasksPage>
                           itemBuilder: (context, index) => _TaskTile(
                             task: snapshot.tasks[index],
                             theme: theme,
-                            onToggle: (source) =>
-                                _toggleTask(snapshot.tasks[index], source),
+                            onToggle: snapshot.isRestDay
+                                ? null
+                                : (source) => _toggleTask(
+                                    snapshot.tasks[index],
+                                    source,
+                                  ),
                           ),
                         ),
                       ),
@@ -278,30 +290,17 @@ class _Hero extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: _CalendarPill(
-                  theme: theme,
-                  label: '${now.month}月${now.day}日 · 星期$weekday',
-                ),
-              ),
+        TabHeader(
+          showSurface: false,
+          isDay: theme.isDay,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: _CalendarPill(
+              theme: theme,
+              label: '${now.month}月${now.day}日 · 星期$weekday',
             ),
-            const SizedBox(width: 8),
-            Semantics(
-              image: true,
-              label: theme.isDay ? '挥手的探险猫' : '挥手的宇航猫',
-              child: Image.asset(
-                theme.mascotAsset,
-                width: 88,
-                height: 88,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: 6),
         _ProgressStrip(
@@ -421,7 +420,7 @@ class _TaskTile extends StatelessWidget {
 
   final TaskSummary task;
   final _CatTheme theme;
-  final ValueChanged<BuildContext> onToggle;
+  final ValueChanged<BuildContext>? onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -431,7 +430,7 @@ class _TaskTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => onToggle(context),
+        onTap: onToggle == null ? null : () => onToggle!(context),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
           child: Row(
@@ -479,7 +478,9 @@ class _TaskTile extends StatelessWidget {
                   label: (task.isDone ? '取消完成 ' : '完成 ') + task.name,
                   child: IconButton(
                     tooltip: task.isDone ? '取消完成' : '完成',
-                    onPressed: () => onToggle(buttonContext),
+                    onPressed: onToggle == null
+                        ? null
+                        : () => onToggle!(buttonContext),
                     style: IconButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: const Size(48, 48),
@@ -568,6 +569,35 @@ class _TaskVisual {
 
   final String asset;
   final String hint;
+}
+
+class _RestDayNotice extends StatelessWidget {
+  const _RestDayNotice({required this.theme});
+  final _CatTheme theme;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: theme.calendar,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: theme.accent.withValues(alpha: 0.34)),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      child: Row(
+        children: [
+          Icon(Icons.bedtime_rounded, color: theme.accent),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '今天是休息日，不需要打卡；连续成长记录会保留。',
+              style: TextStyle(color: theme.text, fontWeight: FontWeight.w400),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _SyncNotice extends StatelessWidget {

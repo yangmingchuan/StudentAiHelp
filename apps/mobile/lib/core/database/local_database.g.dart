@@ -2775,6 +2775,1421 @@ class LocalDailyAwardsCompanion extends UpdateCompanion<LocalDailyAward> {
   }
 }
 
+class $LocalRestDaysTable extends LocalRestDays
+    with TableInfo<$LocalRestDaysTable, LocalRestDay> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalRestDaysTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _childIdMeta = const VerificationMeta(
+    'childId',
+  );
+  @override
+  late final GeneratedColumn<int> childId = GeneratedColumn<int>(
+    'child_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _restDateMeta = const VerificationMeta(
+    'restDate',
+  );
+  @override
+  late final GeneratedColumn<String> restDate = GeneratedColumn<String>(
+    'rest_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [childId, restDate, note, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_rest_days';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalRestDay> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('child_id')) {
+      context.handle(
+        _childIdMeta,
+        childId.isAcceptableOrUnknown(data['child_id']!, _childIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_childIdMeta);
+    }
+    if (data.containsKey('rest_date')) {
+      context.handle(
+        _restDateMeta,
+        restDate.isAcceptableOrUnknown(data['rest_date']!, _restDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_restDateMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {childId, restDate};
+  @override
+  LocalRestDay map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalRestDay(
+      childId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}child_id'],
+      )!,
+      restDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rest_date'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalRestDaysTable createAlias(String alias) {
+    return $LocalRestDaysTable(attachedDatabase, alias);
+  }
+}
+
+class LocalRestDay extends DataClass implements Insertable<LocalRestDay> {
+  final int childId;
+  final String restDate;
+  final String note;
+  final DateTime createdAt;
+  const LocalRestDay({
+    required this.childId,
+    required this.restDate,
+    required this.note,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['child_id'] = Variable<int>(childId);
+    map['rest_date'] = Variable<String>(restDate);
+    map['note'] = Variable<String>(note);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  LocalRestDaysCompanion toCompanion(bool nullToAbsent) {
+    return LocalRestDaysCompanion(
+      childId: Value(childId),
+      restDate: Value(restDate),
+      note: Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory LocalRestDay.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalRestDay(
+      childId: serializer.fromJson<int>(json['childId']),
+      restDate: serializer.fromJson<String>(json['restDate']),
+      note: serializer.fromJson<String>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'childId': serializer.toJson<int>(childId),
+      'restDate': serializer.toJson<String>(restDate),
+      'note': serializer.toJson<String>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  LocalRestDay copyWith({
+    int? childId,
+    String? restDate,
+    String? note,
+    DateTime? createdAt,
+  }) => LocalRestDay(
+    childId: childId ?? this.childId,
+    restDate: restDate ?? this.restDate,
+    note: note ?? this.note,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  LocalRestDay copyWithCompanion(LocalRestDaysCompanion data) {
+    return LocalRestDay(
+      childId: data.childId.present ? data.childId.value : this.childId,
+      restDate: data.restDate.present ? data.restDate.value : this.restDate,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalRestDay(')
+          ..write('childId: $childId, ')
+          ..write('restDate: $restDate, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(childId, restDate, note, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalRestDay &&
+          other.childId == this.childId &&
+          other.restDate == this.restDate &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class LocalRestDaysCompanion extends UpdateCompanion<LocalRestDay> {
+  final Value<int> childId;
+  final Value<String> restDate;
+  final Value<String> note;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const LocalRestDaysCompanion({
+    this.childId = const Value.absent(),
+    this.restDate = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalRestDaysCompanion.insert({
+    required int childId,
+    required String restDate,
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : childId = Value(childId),
+       restDate = Value(restDate);
+  static Insertable<LocalRestDay> custom({
+    Expression<int>? childId,
+    Expression<String>? restDate,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (childId != null) 'child_id': childId,
+      if (restDate != null) 'rest_date': restDate,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalRestDaysCompanion copyWith({
+    Value<int>? childId,
+    Value<String>? restDate,
+    Value<String>? note,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return LocalRestDaysCompanion(
+      childId: childId ?? this.childId,
+      restDate: restDate ?? this.restDate,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (childId.present) {
+      map['child_id'] = Variable<int>(childId.value);
+    }
+    if (restDate.present) {
+      map['rest_date'] = Variable<String>(restDate.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalRestDaysCompanion(')
+          ..write('childId: $childId, ')
+          ..write('restDate: $restDate, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalRewardsTable extends LocalRewards
+    with TableInfo<$LocalRewardsTable, LocalReward> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalRewardsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _childIdMeta = const VerificationMeta(
+    'childId',
+  );
+  @override
+  late final GeneratedColumn<int> childId = GeneratedColumn<int>(
+    'child_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _costStarsMeta = const VerificationMeta(
+    'costStars',
+  );
+  @override
+  late final GeneratedColumn<int> costStars = GeneratedColumn<int>(
+    'cost_stars',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconNameMeta = const VerificationMeta(
+    'iconName',
+  );
+  @override
+  late final GeneratedColumn<String> iconName = GeneratedColumn<String>(
+    'icon_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('redeem_rounded'),
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    childId,
+    title,
+    costStars,
+    iconName,
+    isActive,
+    sortOrder,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_rewards';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalReward> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('child_id')) {
+      context.handle(
+        _childIdMeta,
+        childId.isAcceptableOrUnknown(data['child_id']!, _childIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_childIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('cost_stars')) {
+      context.handle(
+        _costStarsMeta,
+        costStars.isAcceptableOrUnknown(data['cost_stars']!, _costStarsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_costStarsMeta);
+    }
+    if (data.containsKey('icon_name')) {
+      context.handle(
+        _iconNameMeta,
+        iconName.isAcceptableOrUnknown(data['icon_name']!, _iconNameMeta),
+      );
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalReward map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalReward(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      childId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}child_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      costStars: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cost_stars'],
+      )!,
+      iconName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon_name'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalRewardsTable createAlias(String alias) {
+    return $LocalRewardsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalReward extends DataClass implements Insertable<LocalReward> {
+  final int id;
+  final int childId;
+  final String title;
+  final int costStars;
+  final String iconName;
+  final bool isActive;
+  final int sortOrder;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const LocalReward({
+    required this.id,
+    required this.childId,
+    required this.title,
+    required this.costStars,
+    required this.iconName,
+    required this.isActive,
+    required this.sortOrder,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['child_id'] = Variable<int>(childId);
+    map['title'] = Variable<String>(title);
+    map['cost_stars'] = Variable<int>(costStars);
+    map['icon_name'] = Variable<String>(iconName);
+    map['is_active'] = Variable<bool>(isActive);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalRewardsCompanion toCompanion(bool nullToAbsent) {
+    return LocalRewardsCompanion(
+      id: Value(id),
+      childId: Value(childId),
+      title: Value(title),
+      costStars: Value(costStars),
+      iconName: Value(iconName),
+      isActive: Value(isActive),
+      sortOrder: Value(sortOrder),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalReward.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalReward(
+      id: serializer.fromJson<int>(json['id']),
+      childId: serializer.fromJson<int>(json['childId']),
+      title: serializer.fromJson<String>(json['title']),
+      costStars: serializer.fromJson<int>(json['costStars']),
+      iconName: serializer.fromJson<String>(json['iconName']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'childId': serializer.toJson<int>(childId),
+      'title': serializer.toJson<String>(title),
+      'costStars': serializer.toJson<int>(costStars),
+      'iconName': serializer.toJson<String>(iconName),
+      'isActive': serializer.toJson<bool>(isActive),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalReward copyWith({
+    int? id,
+    int? childId,
+    String? title,
+    int? costStars,
+    String? iconName,
+    bool? isActive,
+    int? sortOrder,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => LocalReward(
+    id: id ?? this.id,
+    childId: childId ?? this.childId,
+    title: title ?? this.title,
+    costStars: costStars ?? this.costStars,
+    iconName: iconName ?? this.iconName,
+    isActive: isActive ?? this.isActive,
+    sortOrder: sortOrder ?? this.sortOrder,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  LocalReward copyWithCompanion(LocalRewardsCompanion data) {
+    return LocalReward(
+      id: data.id.present ? data.id.value : this.id,
+      childId: data.childId.present ? data.childId.value : this.childId,
+      title: data.title.present ? data.title.value : this.title,
+      costStars: data.costStars.present ? data.costStars.value : this.costStars,
+      iconName: data.iconName.present ? data.iconName.value : this.iconName,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalReward(')
+          ..write('id: $id, ')
+          ..write('childId: $childId, ')
+          ..write('title: $title, ')
+          ..write('costStars: $costStars, ')
+          ..write('iconName: $iconName, ')
+          ..write('isActive: $isActive, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    childId,
+    title,
+    costStars,
+    iconName,
+    isActive,
+    sortOrder,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalReward &&
+          other.id == this.id &&
+          other.childId == this.childId &&
+          other.title == this.title &&
+          other.costStars == this.costStars &&
+          other.iconName == this.iconName &&
+          other.isActive == this.isActive &&
+          other.sortOrder == this.sortOrder &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalRewardsCompanion extends UpdateCompanion<LocalReward> {
+  final Value<int> id;
+  final Value<int> childId;
+  final Value<String> title;
+  final Value<int> costStars;
+  final Value<String> iconName;
+  final Value<bool> isActive;
+  final Value<int> sortOrder;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const LocalRewardsCompanion({
+    this.id = const Value.absent(),
+    this.childId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.costStars = const Value.absent(),
+    this.iconName = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  LocalRewardsCompanion.insert({
+    this.id = const Value.absent(),
+    required int childId,
+    required String title,
+    required int costStars,
+    this.iconName = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  }) : childId = Value(childId),
+       title = Value(title),
+       costStars = Value(costStars);
+  static Insertable<LocalReward> custom({
+    Expression<int>? id,
+    Expression<int>? childId,
+    Expression<String>? title,
+    Expression<int>? costStars,
+    Expression<String>? iconName,
+    Expression<bool>? isActive,
+    Expression<int>? sortOrder,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (childId != null) 'child_id': childId,
+      if (title != null) 'title': title,
+      if (costStars != null) 'cost_stars': costStars,
+      if (iconName != null) 'icon_name': iconName,
+      if (isActive != null) 'is_active': isActive,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  LocalRewardsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? childId,
+    Value<String>? title,
+    Value<int>? costStars,
+    Value<String>? iconName,
+    Value<bool>? isActive,
+    Value<int>? sortOrder,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return LocalRewardsCompanion(
+      id: id ?? this.id,
+      childId: childId ?? this.childId,
+      title: title ?? this.title,
+      costStars: costStars ?? this.costStars,
+      iconName: iconName ?? this.iconName,
+      isActive: isActive ?? this.isActive,
+      sortOrder: sortOrder ?? this.sortOrder,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (childId.present) {
+      map['child_id'] = Variable<int>(childId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (costStars.present) {
+      map['cost_stars'] = Variable<int>(costStars.value);
+    }
+    if (iconName.present) {
+      map['icon_name'] = Variable<String>(iconName.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalRewardsCompanion(')
+          ..write('id: $id, ')
+          ..write('childId: $childId, ')
+          ..write('title: $title, ')
+          ..write('costStars: $costStars, ')
+          ..write('iconName: $iconName, ')
+          ..write('isActive: $isActive, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalRewardRedemptionsTable extends LocalRewardRedemptions
+    with TableInfo<$LocalRewardRedemptionsTable, LocalRewardRedemption> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalRewardRedemptionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _childIdMeta = const VerificationMeta(
+    'childId',
+  );
+  @override
+  late final GeneratedColumn<int> childId = GeneratedColumn<int>(
+    'child_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rewardIdMeta = const VerificationMeta(
+    'rewardId',
+  );
+  @override
+  late final GeneratedColumn<int> rewardId = GeneratedColumn<int>(
+    'reward_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rewardTitleMeta = const VerificationMeta(
+    'rewardTitle',
+  );
+  @override
+  late final GeneratedColumn<String> rewardTitle = GeneratedColumn<String>(
+    'reward_title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _costStarsMeta = const VerificationMeta(
+    'costStars',
+  );
+  @override
+  late final GeneratedColumn<int> costStars = GeneratedColumn<int>(
+    'cost_stars',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _requestedAtMeta = const VerificationMeta(
+    'requestedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> requestedAt = GeneratedColumn<DateTime>(
+    'requested_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _resolvedAtMeta = const VerificationMeta(
+    'resolvedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> resolvedAt = GeneratedColumn<DateTime>(
+    'resolved_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _resolutionNoteMeta = const VerificationMeta(
+    'resolutionNote',
+  );
+  @override
+  late final GeneratedColumn<String> resolutionNote = GeneratedColumn<String>(
+    'resolution_note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    childId,
+    rewardId,
+    rewardTitle,
+    costStars,
+    status,
+    requestedAt,
+    resolvedAt,
+    resolutionNote,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_reward_redemptions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalRewardRedemption> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('child_id')) {
+      context.handle(
+        _childIdMeta,
+        childId.isAcceptableOrUnknown(data['child_id']!, _childIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_childIdMeta);
+    }
+    if (data.containsKey('reward_id')) {
+      context.handle(
+        _rewardIdMeta,
+        rewardId.isAcceptableOrUnknown(data['reward_id']!, _rewardIdMeta),
+      );
+    }
+    if (data.containsKey('reward_title')) {
+      context.handle(
+        _rewardTitleMeta,
+        rewardTitle.isAcceptableOrUnknown(
+          data['reward_title']!,
+          _rewardTitleMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_rewardTitleMeta);
+    }
+    if (data.containsKey('cost_stars')) {
+      context.handle(
+        _costStarsMeta,
+        costStars.isAcceptableOrUnknown(data['cost_stars']!, _costStarsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_costStarsMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('requested_at')) {
+      context.handle(
+        _requestedAtMeta,
+        requestedAt.isAcceptableOrUnknown(
+          data['requested_at']!,
+          _requestedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('resolved_at')) {
+      context.handle(
+        _resolvedAtMeta,
+        resolvedAt.isAcceptableOrUnknown(data['resolved_at']!, _resolvedAtMeta),
+      );
+    }
+    if (data.containsKey('resolution_note')) {
+      context.handle(
+        _resolutionNoteMeta,
+        resolutionNote.isAcceptableOrUnknown(
+          data['resolution_note']!,
+          _resolutionNoteMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalRewardRedemption map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalRewardRedemption(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      childId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}child_id'],
+      )!,
+      rewardId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reward_id'],
+      ),
+      rewardTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reward_title'],
+      )!,
+      costStars: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cost_stars'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      requestedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}requested_at'],
+      )!,
+      resolvedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}resolved_at'],
+      ),
+      resolutionNote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}resolution_note'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalRewardRedemptionsTable createAlias(String alias) {
+    return $LocalRewardRedemptionsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalRewardRedemption extends DataClass
+    implements Insertable<LocalRewardRedemption> {
+  final int id;
+  final int childId;
+  final int? rewardId;
+  final String rewardTitle;
+  final int costStars;
+  final String status;
+  final DateTime requestedAt;
+  final DateTime? resolvedAt;
+  final String resolutionNote;
+  const LocalRewardRedemption({
+    required this.id,
+    required this.childId,
+    this.rewardId,
+    required this.rewardTitle,
+    required this.costStars,
+    required this.status,
+    required this.requestedAt,
+    this.resolvedAt,
+    required this.resolutionNote,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['child_id'] = Variable<int>(childId);
+    if (!nullToAbsent || rewardId != null) {
+      map['reward_id'] = Variable<int>(rewardId);
+    }
+    map['reward_title'] = Variable<String>(rewardTitle);
+    map['cost_stars'] = Variable<int>(costStars);
+    map['status'] = Variable<String>(status);
+    map['requested_at'] = Variable<DateTime>(requestedAt);
+    if (!nullToAbsent || resolvedAt != null) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt);
+    }
+    map['resolution_note'] = Variable<String>(resolutionNote);
+    return map;
+  }
+
+  LocalRewardRedemptionsCompanion toCompanion(bool nullToAbsent) {
+    return LocalRewardRedemptionsCompanion(
+      id: Value(id),
+      childId: Value(childId),
+      rewardId: rewardId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rewardId),
+      rewardTitle: Value(rewardTitle),
+      costStars: Value(costStars),
+      status: Value(status),
+      requestedAt: Value(requestedAt),
+      resolvedAt: resolvedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resolvedAt),
+      resolutionNote: Value(resolutionNote),
+    );
+  }
+
+  factory LocalRewardRedemption.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalRewardRedemption(
+      id: serializer.fromJson<int>(json['id']),
+      childId: serializer.fromJson<int>(json['childId']),
+      rewardId: serializer.fromJson<int?>(json['rewardId']),
+      rewardTitle: serializer.fromJson<String>(json['rewardTitle']),
+      costStars: serializer.fromJson<int>(json['costStars']),
+      status: serializer.fromJson<String>(json['status']),
+      requestedAt: serializer.fromJson<DateTime>(json['requestedAt']),
+      resolvedAt: serializer.fromJson<DateTime?>(json['resolvedAt']),
+      resolutionNote: serializer.fromJson<String>(json['resolutionNote']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'childId': serializer.toJson<int>(childId),
+      'rewardId': serializer.toJson<int?>(rewardId),
+      'rewardTitle': serializer.toJson<String>(rewardTitle),
+      'costStars': serializer.toJson<int>(costStars),
+      'status': serializer.toJson<String>(status),
+      'requestedAt': serializer.toJson<DateTime>(requestedAt),
+      'resolvedAt': serializer.toJson<DateTime?>(resolvedAt),
+      'resolutionNote': serializer.toJson<String>(resolutionNote),
+    };
+  }
+
+  LocalRewardRedemption copyWith({
+    int? id,
+    int? childId,
+    Value<int?> rewardId = const Value.absent(),
+    String? rewardTitle,
+    int? costStars,
+    String? status,
+    DateTime? requestedAt,
+    Value<DateTime?> resolvedAt = const Value.absent(),
+    String? resolutionNote,
+  }) => LocalRewardRedemption(
+    id: id ?? this.id,
+    childId: childId ?? this.childId,
+    rewardId: rewardId.present ? rewardId.value : this.rewardId,
+    rewardTitle: rewardTitle ?? this.rewardTitle,
+    costStars: costStars ?? this.costStars,
+    status: status ?? this.status,
+    requestedAt: requestedAt ?? this.requestedAt,
+    resolvedAt: resolvedAt.present ? resolvedAt.value : this.resolvedAt,
+    resolutionNote: resolutionNote ?? this.resolutionNote,
+  );
+  LocalRewardRedemption copyWithCompanion(
+    LocalRewardRedemptionsCompanion data,
+  ) {
+    return LocalRewardRedemption(
+      id: data.id.present ? data.id.value : this.id,
+      childId: data.childId.present ? data.childId.value : this.childId,
+      rewardId: data.rewardId.present ? data.rewardId.value : this.rewardId,
+      rewardTitle: data.rewardTitle.present
+          ? data.rewardTitle.value
+          : this.rewardTitle,
+      costStars: data.costStars.present ? data.costStars.value : this.costStars,
+      status: data.status.present ? data.status.value : this.status,
+      requestedAt: data.requestedAt.present
+          ? data.requestedAt.value
+          : this.requestedAt,
+      resolvedAt: data.resolvedAt.present
+          ? data.resolvedAt.value
+          : this.resolvedAt,
+      resolutionNote: data.resolutionNote.present
+          ? data.resolutionNote.value
+          : this.resolutionNote,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalRewardRedemption(')
+          ..write('id: $id, ')
+          ..write('childId: $childId, ')
+          ..write('rewardId: $rewardId, ')
+          ..write('rewardTitle: $rewardTitle, ')
+          ..write('costStars: $costStars, ')
+          ..write('status: $status, ')
+          ..write('requestedAt: $requestedAt, ')
+          ..write('resolvedAt: $resolvedAt, ')
+          ..write('resolutionNote: $resolutionNote')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    childId,
+    rewardId,
+    rewardTitle,
+    costStars,
+    status,
+    requestedAt,
+    resolvedAt,
+    resolutionNote,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalRewardRedemption &&
+          other.id == this.id &&
+          other.childId == this.childId &&
+          other.rewardId == this.rewardId &&
+          other.rewardTitle == this.rewardTitle &&
+          other.costStars == this.costStars &&
+          other.status == this.status &&
+          other.requestedAt == this.requestedAt &&
+          other.resolvedAt == this.resolvedAt &&
+          other.resolutionNote == this.resolutionNote);
+}
+
+class LocalRewardRedemptionsCompanion
+    extends UpdateCompanion<LocalRewardRedemption> {
+  final Value<int> id;
+  final Value<int> childId;
+  final Value<int?> rewardId;
+  final Value<String> rewardTitle;
+  final Value<int> costStars;
+  final Value<String> status;
+  final Value<DateTime> requestedAt;
+  final Value<DateTime?> resolvedAt;
+  final Value<String> resolutionNote;
+  const LocalRewardRedemptionsCompanion({
+    this.id = const Value.absent(),
+    this.childId = const Value.absent(),
+    this.rewardId = const Value.absent(),
+    this.rewardTitle = const Value.absent(),
+    this.costStars = const Value.absent(),
+    this.status = const Value.absent(),
+    this.requestedAt = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+    this.resolutionNote = const Value.absent(),
+  });
+  LocalRewardRedemptionsCompanion.insert({
+    this.id = const Value.absent(),
+    required int childId,
+    this.rewardId = const Value.absent(),
+    required String rewardTitle,
+    required int costStars,
+    this.status = const Value.absent(),
+    this.requestedAt = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+    this.resolutionNote = const Value.absent(),
+  }) : childId = Value(childId),
+       rewardTitle = Value(rewardTitle),
+       costStars = Value(costStars);
+  static Insertable<LocalRewardRedemption> custom({
+    Expression<int>? id,
+    Expression<int>? childId,
+    Expression<int>? rewardId,
+    Expression<String>? rewardTitle,
+    Expression<int>? costStars,
+    Expression<String>? status,
+    Expression<DateTime>? requestedAt,
+    Expression<DateTime>? resolvedAt,
+    Expression<String>? resolutionNote,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (childId != null) 'child_id': childId,
+      if (rewardId != null) 'reward_id': rewardId,
+      if (rewardTitle != null) 'reward_title': rewardTitle,
+      if (costStars != null) 'cost_stars': costStars,
+      if (status != null) 'status': status,
+      if (requestedAt != null) 'requested_at': requestedAt,
+      if (resolvedAt != null) 'resolved_at': resolvedAt,
+      if (resolutionNote != null) 'resolution_note': resolutionNote,
+    });
+  }
+
+  LocalRewardRedemptionsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? childId,
+    Value<int?>? rewardId,
+    Value<String>? rewardTitle,
+    Value<int>? costStars,
+    Value<String>? status,
+    Value<DateTime>? requestedAt,
+    Value<DateTime?>? resolvedAt,
+    Value<String>? resolutionNote,
+  }) {
+    return LocalRewardRedemptionsCompanion(
+      id: id ?? this.id,
+      childId: childId ?? this.childId,
+      rewardId: rewardId ?? this.rewardId,
+      rewardTitle: rewardTitle ?? this.rewardTitle,
+      costStars: costStars ?? this.costStars,
+      status: status ?? this.status,
+      requestedAt: requestedAt ?? this.requestedAt,
+      resolvedAt: resolvedAt ?? this.resolvedAt,
+      resolutionNote: resolutionNote ?? this.resolutionNote,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (childId.present) {
+      map['child_id'] = Variable<int>(childId.value);
+    }
+    if (rewardId.present) {
+      map['reward_id'] = Variable<int>(rewardId.value);
+    }
+    if (rewardTitle.present) {
+      map['reward_title'] = Variable<String>(rewardTitle.value);
+    }
+    if (costStars.present) {
+      map['cost_stars'] = Variable<int>(costStars.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (requestedAt.present) {
+      map['requested_at'] = Variable<DateTime>(requestedAt.value);
+    }
+    if (resolvedAt.present) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt.value);
+    }
+    if (resolutionNote.present) {
+      map['resolution_note'] = Variable<String>(resolutionNote.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalRewardRedemptionsCompanion(')
+          ..write('id: $id, ')
+          ..write('childId: $childId, ')
+          ..write('rewardId: $rewardId, ')
+          ..write('rewardTitle: $rewardTitle, ')
+          ..write('costStars: $costStars, ')
+          ..write('status: $status, ')
+          ..write('requestedAt: $requestedAt, ')
+          ..write('resolvedAt: $resolvedAt, ')
+          ..write('resolutionNote: $resolutionNote')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncOperationsTable extends SyncOperations
     with TableInfo<$SyncOperationsTable, SyncOperation> {
   @override
@@ -6987,6 +8402,10 @@ abstract class _$LocalDatabase extends GeneratedDatabase {
   late final $LocalDailyAwardsTable localDailyAwards = $LocalDailyAwardsTable(
     this,
   );
+  late final $LocalRestDaysTable localRestDays = $LocalRestDaysTable(this);
+  late final $LocalRewardsTable localRewards = $LocalRewardsTable(this);
+  late final $LocalRewardRedemptionsTable localRewardRedemptions =
+      $LocalRewardRedemptionsTable(this);
   late final $SyncOperationsTable syncOperations = $SyncOperationsTable(this);
   late final $LocalCycleProfilesTable localCycleProfiles =
       $LocalCycleProfilesTable(this);
@@ -7010,6 +8429,9 @@ abstract class _$LocalDatabase extends GeneratedDatabase {
     localAssetSnapshots,
     localChildBadges,
     localDailyAwards,
+    localRestDays,
+    localRewards,
+    localRewardRedemptions,
     syncOperations,
     localCycleProfiles,
     localCycleDayLogs,
@@ -8514,6 +9936,756 @@ typedef $$LocalDailyAwardsTableProcessedTableManager =
         >,
       ),
       LocalDailyAward,
+      PrefetchHooks Function()
+    >;
+typedef $$LocalRestDaysTableCreateCompanionBuilder =
+    LocalRestDaysCompanion Function({
+      required int childId,
+      required String restDate,
+      Value<String> note,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$LocalRestDaysTableUpdateCompanionBuilder =
+    LocalRestDaysCompanion Function({
+      Value<int> childId,
+      Value<String> restDate,
+      Value<String> note,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$LocalRestDaysTableFilterComposer
+    extends Composer<_$LocalDatabase, $LocalRestDaysTable> {
+  $$LocalRestDaysTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get childId => $composableBuilder(
+    column: $table.childId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get restDate => $composableBuilder(
+    column: $table.restDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalRestDaysTableOrderingComposer
+    extends Composer<_$LocalDatabase, $LocalRestDaysTable> {
+  $$LocalRestDaysTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get childId => $composableBuilder(
+    column: $table.childId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get restDate => $composableBuilder(
+    column: $table.restDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalRestDaysTableAnnotationComposer
+    extends Composer<_$LocalDatabase, $LocalRestDaysTable> {
+  $$LocalRestDaysTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get childId =>
+      $composableBuilder(column: $table.childId, builder: (column) => column);
+
+  GeneratedColumn<String> get restDate =>
+      $composableBuilder(column: $table.restDate, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$LocalRestDaysTableTableManager
+    extends
+        RootTableManager<
+          _$LocalDatabase,
+          $LocalRestDaysTable,
+          LocalRestDay,
+          $$LocalRestDaysTableFilterComposer,
+          $$LocalRestDaysTableOrderingComposer,
+          $$LocalRestDaysTableAnnotationComposer,
+          $$LocalRestDaysTableCreateCompanionBuilder,
+          $$LocalRestDaysTableUpdateCompanionBuilder,
+          (
+            LocalRestDay,
+            BaseReferences<_$LocalDatabase, $LocalRestDaysTable, LocalRestDay>,
+          ),
+          LocalRestDay,
+          PrefetchHooks Function()
+        > {
+  $$LocalRestDaysTableTableManager(
+    _$LocalDatabase db,
+    $LocalRestDaysTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalRestDaysTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalRestDaysTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalRestDaysTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> childId = const Value.absent(),
+                Value<String> restDate = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalRestDaysCompanion(
+                childId: childId,
+                restDate: restDate,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int childId,
+                required String restDate,
+                Value<String> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalRestDaysCompanion.insert(
+                childId: childId,
+                restDate: restDate,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalRestDaysTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LocalDatabase,
+      $LocalRestDaysTable,
+      LocalRestDay,
+      $$LocalRestDaysTableFilterComposer,
+      $$LocalRestDaysTableOrderingComposer,
+      $$LocalRestDaysTableAnnotationComposer,
+      $$LocalRestDaysTableCreateCompanionBuilder,
+      $$LocalRestDaysTableUpdateCompanionBuilder,
+      (
+        LocalRestDay,
+        BaseReferences<_$LocalDatabase, $LocalRestDaysTable, LocalRestDay>,
+      ),
+      LocalRestDay,
+      PrefetchHooks Function()
+    >;
+typedef $$LocalRewardsTableCreateCompanionBuilder =
+    LocalRewardsCompanion Function({
+      Value<int> id,
+      required int childId,
+      required String title,
+      required int costStars,
+      Value<String> iconName,
+      Value<bool> isActive,
+      Value<int> sortOrder,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+typedef $$LocalRewardsTableUpdateCompanionBuilder =
+    LocalRewardsCompanion Function({
+      Value<int> id,
+      Value<int> childId,
+      Value<String> title,
+      Value<int> costStars,
+      Value<String> iconName,
+      Value<bool> isActive,
+      Value<int> sortOrder,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$LocalRewardsTableFilterComposer
+    extends Composer<_$LocalDatabase, $LocalRewardsTable> {
+  $$LocalRewardsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get childId => $composableBuilder(
+    column: $table.childId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get costStars => $composableBuilder(
+    column: $table.costStars,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get iconName => $composableBuilder(
+    column: $table.iconName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalRewardsTableOrderingComposer
+    extends Composer<_$LocalDatabase, $LocalRewardsTable> {
+  $$LocalRewardsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get childId => $composableBuilder(
+    column: $table.childId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get costStars => $composableBuilder(
+    column: $table.costStars,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get iconName => $composableBuilder(
+    column: $table.iconName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalRewardsTableAnnotationComposer
+    extends Composer<_$LocalDatabase, $LocalRewardsTable> {
+  $$LocalRewardsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get childId =>
+      $composableBuilder(column: $table.childId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<int> get costStars =>
+      $composableBuilder(column: $table.costStars, builder: (column) => column);
+
+  GeneratedColumn<String> get iconName =>
+      $composableBuilder(column: $table.iconName, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalRewardsTableTableManager
+    extends
+        RootTableManager<
+          _$LocalDatabase,
+          $LocalRewardsTable,
+          LocalReward,
+          $$LocalRewardsTableFilterComposer,
+          $$LocalRewardsTableOrderingComposer,
+          $$LocalRewardsTableAnnotationComposer,
+          $$LocalRewardsTableCreateCompanionBuilder,
+          $$LocalRewardsTableUpdateCompanionBuilder,
+          (
+            LocalReward,
+            BaseReferences<_$LocalDatabase, $LocalRewardsTable, LocalReward>,
+          ),
+          LocalReward,
+          PrefetchHooks Function()
+        > {
+  $$LocalRewardsTableTableManager(_$LocalDatabase db, $LocalRewardsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalRewardsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalRewardsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalRewardsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> childId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<int> costStars = const Value.absent(),
+                Value<String> iconName = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => LocalRewardsCompanion(
+                id: id,
+                childId: childId,
+                title: title,
+                costStars: costStars,
+                iconName: iconName,
+                isActive: isActive,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int childId,
+                required String title,
+                required int costStars,
+                Value<String> iconName = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => LocalRewardsCompanion.insert(
+                id: id,
+                childId: childId,
+                title: title,
+                costStars: costStars,
+                iconName: iconName,
+                isActive: isActive,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalRewardsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LocalDatabase,
+      $LocalRewardsTable,
+      LocalReward,
+      $$LocalRewardsTableFilterComposer,
+      $$LocalRewardsTableOrderingComposer,
+      $$LocalRewardsTableAnnotationComposer,
+      $$LocalRewardsTableCreateCompanionBuilder,
+      $$LocalRewardsTableUpdateCompanionBuilder,
+      (
+        LocalReward,
+        BaseReferences<_$LocalDatabase, $LocalRewardsTable, LocalReward>,
+      ),
+      LocalReward,
+      PrefetchHooks Function()
+    >;
+typedef $$LocalRewardRedemptionsTableCreateCompanionBuilder =
+    LocalRewardRedemptionsCompanion Function({
+      Value<int> id,
+      required int childId,
+      Value<int?> rewardId,
+      required String rewardTitle,
+      required int costStars,
+      Value<String> status,
+      Value<DateTime> requestedAt,
+      Value<DateTime?> resolvedAt,
+      Value<String> resolutionNote,
+    });
+typedef $$LocalRewardRedemptionsTableUpdateCompanionBuilder =
+    LocalRewardRedemptionsCompanion Function({
+      Value<int> id,
+      Value<int> childId,
+      Value<int?> rewardId,
+      Value<String> rewardTitle,
+      Value<int> costStars,
+      Value<String> status,
+      Value<DateTime> requestedAt,
+      Value<DateTime?> resolvedAt,
+      Value<String> resolutionNote,
+    });
+
+class $$LocalRewardRedemptionsTableFilterComposer
+    extends Composer<_$LocalDatabase, $LocalRewardRedemptionsTable> {
+  $$LocalRewardRedemptionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get childId => $composableBuilder(
+    column: $table.childId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rewardId => $composableBuilder(
+    column: $table.rewardId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rewardTitle => $composableBuilder(
+    column: $table.rewardTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get costStars => $composableBuilder(
+    column: $table.costStars,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get requestedAt => $composableBuilder(
+    column: $table.requestedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get resolutionNote => $composableBuilder(
+    column: $table.resolutionNote,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalRewardRedemptionsTableOrderingComposer
+    extends Composer<_$LocalDatabase, $LocalRewardRedemptionsTable> {
+  $$LocalRewardRedemptionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get childId => $composableBuilder(
+    column: $table.childId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rewardId => $composableBuilder(
+    column: $table.rewardId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rewardTitle => $composableBuilder(
+    column: $table.rewardTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get costStars => $composableBuilder(
+    column: $table.costStars,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get requestedAt => $composableBuilder(
+    column: $table.requestedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get resolutionNote => $composableBuilder(
+    column: $table.resolutionNote,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalRewardRedemptionsTableAnnotationComposer
+    extends Composer<_$LocalDatabase, $LocalRewardRedemptionsTable> {
+  $$LocalRewardRedemptionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get childId =>
+      $composableBuilder(column: $table.childId, builder: (column) => column);
+
+  GeneratedColumn<int> get rewardId =>
+      $composableBuilder(column: $table.rewardId, builder: (column) => column);
+
+  GeneratedColumn<String> get rewardTitle => $composableBuilder(
+    column: $table.rewardTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get costStars =>
+      $composableBuilder(column: $table.costStars, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get requestedAt => $composableBuilder(
+    column: $table.requestedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get resolutionNote => $composableBuilder(
+    column: $table.resolutionNote,
+    builder: (column) => column,
+  );
+}
+
+class $$LocalRewardRedemptionsTableTableManager
+    extends
+        RootTableManager<
+          _$LocalDatabase,
+          $LocalRewardRedemptionsTable,
+          LocalRewardRedemption,
+          $$LocalRewardRedemptionsTableFilterComposer,
+          $$LocalRewardRedemptionsTableOrderingComposer,
+          $$LocalRewardRedemptionsTableAnnotationComposer,
+          $$LocalRewardRedemptionsTableCreateCompanionBuilder,
+          $$LocalRewardRedemptionsTableUpdateCompanionBuilder,
+          (
+            LocalRewardRedemption,
+            BaseReferences<
+              _$LocalDatabase,
+              $LocalRewardRedemptionsTable,
+              LocalRewardRedemption
+            >,
+          ),
+          LocalRewardRedemption,
+          PrefetchHooks Function()
+        > {
+  $$LocalRewardRedemptionsTableTableManager(
+    _$LocalDatabase db,
+    $LocalRewardRedemptionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalRewardRedemptionsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$LocalRewardRedemptionsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LocalRewardRedemptionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> childId = const Value.absent(),
+                Value<int?> rewardId = const Value.absent(),
+                Value<String> rewardTitle = const Value.absent(),
+                Value<int> costStars = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime> requestedAt = const Value.absent(),
+                Value<DateTime?> resolvedAt = const Value.absent(),
+                Value<String> resolutionNote = const Value.absent(),
+              }) => LocalRewardRedemptionsCompanion(
+                id: id,
+                childId: childId,
+                rewardId: rewardId,
+                rewardTitle: rewardTitle,
+                costStars: costStars,
+                status: status,
+                requestedAt: requestedAt,
+                resolvedAt: resolvedAt,
+                resolutionNote: resolutionNote,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int childId,
+                Value<int?> rewardId = const Value.absent(),
+                required String rewardTitle,
+                required int costStars,
+                Value<String> status = const Value.absent(),
+                Value<DateTime> requestedAt = const Value.absent(),
+                Value<DateTime?> resolvedAt = const Value.absent(),
+                Value<String> resolutionNote = const Value.absent(),
+              }) => LocalRewardRedemptionsCompanion.insert(
+                id: id,
+                childId: childId,
+                rewardId: rewardId,
+                rewardTitle: rewardTitle,
+                costStars: costStars,
+                status: status,
+                requestedAt: requestedAt,
+                resolvedAt: resolvedAt,
+                resolutionNote: resolutionNote,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalRewardRedemptionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LocalDatabase,
+      $LocalRewardRedemptionsTable,
+      LocalRewardRedemption,
+      $$LocalRewardRedemptionsTableFilterComposer,
+      $$LocalRewardRedemptionsTableOrderingComposer,
+      $$LocalRewardRedemptionsTableAnnotationComposer,
+      $$LocalRewardRedemptionsTableCreateCompanionBuilder,
+      $$LocalRewardRedemptionsTableUpdateCompanionBuilder,
+      (
+        LocalRewardRedemption,
+        BaseReferences<
+          _$LocalDatabase,
+          $LocalRewardRedemptionsTable,
+          LocalRewardRedemption
+        >,
+      ),
+      LocalRewardRedemption,
       PrefetchHooks Function()
     >;
 typedef $$SyncOperationsTableCreateCompanionBuilder =
@@ -10679,6 +12851,15 @@ class $LocalDatabaseManager {
       $$LocalChildBadgesTableTableManager(_db, _db.localChildBadges);
   $$LocalDailyAwardsTableTableManager get localDailyAwards =>
       $$LocalDailyAwardsTableTableManager(_db, _db.localDailyAwards);
+  $$LocalRestDaysTableTableManager get localRestDays =>
+      $$LocalRestDaysTableTableManager(_db, _db.localRestDays);
+  $$LocalRewardsTableTableManager get localRewards =>
+      $$LocalRewardsTableTableManager(_db, _db.localRewards);
+  $$LocalRewardRedemptionsTableTableManager get localRewardRedemptions =>
+      $$LocalRewardRedemptionsTableTableManager(
+        _db,
+        _db.localRewardRedemptions,
+      );
   $$SyncOperationsTableTableManager get syncOperations =>
       $$SyncOperationsTableTableManager(_db, _db.syncOperations);
   $$LocalCycleProfilesTableTableManager get localCycleProfiles =>

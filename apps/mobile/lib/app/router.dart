@@ -57,6 +57,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const TodoManagementPage(),
       ),
       GoRoute(
+        path: '/profile/parent-settings',
+        builder: (context, state) => const ParentSettingsPage(),
+      ),
+      GoRoute(
         path: '/profile/history',
         builder: (context, state) => const GrowthHistoryPage(),
       ),

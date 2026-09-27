@@ -1,3 +1,4 @@
+import 'package:little_hero/core/widgets/tab_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:little_hero/core/theme/app_theme.dart';
@@ -41,16 +42,11 @@ class _MedicationHomePageState extends ConsumerState<MedicationHomePage> {
           child: ListView(
             padding: cyclePagePadding(context),
             children: [
-              _MedicationHero(
-                snapshot: snapshot,
-                onAddLog: () => _showLogSheet(context, snapshot),
-              ),
+              _MedicationHero(snapshot: snapshot),
               const SizedBox(height: 12),
-              _MedicationSummary(snapshot: snapshot),
-              const SizedBox(height: 12),
-              _MedicationTimeline(
-                snapshot: snapshot,
-                onAddLog: () => _showLogSheet(context, snapshot),
+              _MedicationSegments(
+                selected: _section,
+                onChanged: (section) => setState(() => _section = section),
               ),
               if (_shouldShowAlerts(snapshot)) ...[
                 const SizedBox(height: 12),
@@ -60,13 +56,6 @@ class _MedicationHomePageState extends ConsumerState<MedicationHomePage> {
                 ),
               ],
               const SizedBox(height: 12),
-              const _SafetyNotice(),
-              const SizedBox(height: 14),
-              _MedicationSegments(
-                selected: _section,
-                onChanged: (section) => setState(() => _section = section),
-              ),
-              const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,
                 child: switch (_section) {
@@ -87,6 +76,8 @@ class _MedicationHomePageState extends ConsumerState<MedicationHomePage> {
                   ),
                 },
               ),
+              const SizedBox(height: 12),
+              const _SafetyNotice(),
             ],
           ),
         ),
@@ -222,208 +213,20 @@ class _MedicationHomePageState extends ConsumerState<MedicationHomePage> {
 }
 
 class _MedicationHero extends StatelessWidget {
-  const _MedicationHero({required this.snapshot, required this.onAddLog});
+  const _MedicationHero({required this.snapshot});
 
   final MedicationSnapshot snapshot;
-  final VoidCallback onAddLog;
-
   @override
-  Widget build(BuildContext context) => CycleCard(
-    padding: const EdgeInsets.fromLTRB(18, 12, 10, 12),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+  Widget build(BuildContext context) => TabHeader(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('家庭药箱', style: TextStyle(fontSize: 24)),
-              const SizedBox(height: 5),
-              Text(
-                snapshot.todayLogCount == 0
-                    ? '今天还没有用药记录'
-                    : '今天已记录 ${snapshot.todayLogCount} 次用药',
-                style: const TextStyle(
-                  color: Color(0xFF786B72),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: onAddLog,
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('记录用药'),
-              ),
-            ],
-          ),
-        ),
-        Transform.translate(
-          offset: const Offset(4, -10),
-          child: Image.asset(
-            DateTime.now().hour >= 7 && DateTime.now().hour < 17
-                ? 'assets/mascots/day_explorer_cat.png'
-                : 'assets/mascots/night_astronaut_cat.png',
-            width: 90,
-            height: 96,
-            fit: BoxFit.contain,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _MedicationTimeline extends StatelessWidget {
-  const _MedicationTimeline({required this.snapshot, required this.onAddLog});
-
-  final MedicationSnapshot snapshot;
-  final VoidCallback onAddLog;
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final todayLogs = snapshot.logs
-        .where((item) => !item.isVoided && _isSameDay(item.takenAt, now))
-        .take(3)
-        .toList();
-    final nextReminder = snapshot.upcomingReminders.isEmpty
-        ? null
-        : snapshot.upcomingReminders.first;
-
-    return CycleCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.schedule_rounded,
-                size: 19,
-                color: AppColors.green,
-              ),
-              const SizedBox(width: 7),
-              const Text('今日用药', style: TextStyle(fontSize: 18)),
-              const Spacer(),
-              Text(
-                '${todayLogs.length} 条记录',
-                style: const TextStyle(
-                  color: Color(0xFF786B72),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (todayLogs.isEmpty)
-            _TimelineEmpty(onAddLog: onAddLog)
-          else
-            for (final log in todayLogs) _TimelineRow(log: log),
-          if (nextReminder != null) ...[
-            const Divider(height: 20),
-            Row(
-              children: [
-                const Icon(
-                  Icons.notifications_active_rounded,
-                  size: 18,
-                  color: AppColors.orange,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '下一次：${_formatDateTime(nextReminder.remindAt)} · '
-                    '${nextReminder.memberName} ${nextReminder.medicineName}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _TimelineEmpty extends StatelessWidget {
-  const _TimelineEmpty({required this.onAddLog});
-  final VoidCallback onAddLog;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: AppColors.green.withValues(alpha: 0.14),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(
-          Icons.medication_rounded,
-          size: 18,
-          color: AppColors.green,
-        ),
-      ),
-      const SizedBox(width: 10),
-      const Expanded(
-        child: Text(
-          '需要时再记一笔，药品和成员可以稍后补充。',
-          style: TextStyle(
-            color: Color(0xFF786B72),
-            fontSize: 13,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ),
-      TextButton(onPressed: onAddLog, child: const Text('去记录')),
-    ],
-  );
-}
-
-class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({required this.log});
-  final MedicationLogEntry log;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 9),
-    child: Row(
-      children: [
-        Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            color: AppColors.green.withValues(alpha: 0.16),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.check_rounded,
-            color: AppColors.green,
-            size: 18,
-          ),
-        ),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 43,
-          child: Text(
-            _formatTime(log.takenAt),
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            '${log.memberName} · ${log.medicineName}'
-            '${log.dosageText.isEmpty ? '' : ' · ${log.dosageText}'}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
-          ),
+        const Text('家庭药箱', style: TextStyle(fontSize: 24)),
+        const SizedBox(height: 5),
+        Text(
+          '今日 ${snapshot.todayLogCount} 条记录 · ${snapshot.medicines.length} 种药品',
+          style: const TextStyle(fontSize: 13, color: Color(0xFF786B72)),
         ),
       ],
     ),
@@ -451,90 +254,6 @@ class _SafetyNotice extends StatelessWidget {
                   color: AppColors.ink,
                   fontWeight: FontWeight.w400,
                   height: 1.45,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MedicationSummary extends StatelessWidget {
-  const _MedicationSummary({required this.snapshot});
-
-  final MedicationSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _SummaryCard(
-            label: '药品',
-            value: snapshot.medicines.length.toString(),
-            color: AppColors.green,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SummaryCard(
-            label: '今日记录',
-            value: snapshot.todayLogCount.toString(),
-            color: AppColors.orange,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SummaryCard(
-            label: '临期',
-            value: (snapshot.expiredCount + snapshot.expiringSoonCount)
-                .toString(),
-            color: AppColors.coral,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xF7FFFCF8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                color: color,
-                fontSize: 24,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                maxLines: 1,
-                style: TextStyle(
-                  color: AppColors.ink.withValues(alpha: 0.68),
-                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -814,8 +533,6 @@ class _MedicineSection extends StatelessWidget {
             icon: Icons.medication_rounded,
             title: '先添加常备药',
             subtitle: '药名、规格、有效期和存放位置都可以手动输入。',
-            actionLabel: '添加药品',
-            onAction: onAdd,
           )
         else
           for (final medicine in medicines) ...[
@@ -950,8 +667,6 @@ class _LogSection extends StatelessWidget {
             icon: Icons.edit_note_rounded,
             title: '还没有用药记录',
             subtitle: '每次记录谁吃了什么、剂量、原因和下次提醒。',
-            actionLabel: '记录用药',
-            onAction: onAdd,
           )
         else
           for (final log in logs) ...[
@@ -1062,8 +777,6 @@ class _MemberSection extends StatelessWidget {
             icon: Icons.groups_rounded,
             title: '先建立家庭成员档案',
             subtitle: '年龄、过敏史和慢病备注会在记录用药时一起参考。',
-            actionLabel: '添加成员',
-            onAction: onAdd,
           )
         else
           for (final member in members) ...[
@@ -1183,15 +896,11 @@ class _EmptyCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.actionLabel,
-    required this.onAction,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final String actionLabel;
-  final VoidCallback onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -1199,14 +908,21 @@ class _EmptyCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(22),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: AppColors.orange.withValues(alpha: 0.14),
-              child: Icon(icon, color: AppColors.orange, size: 30),
+            Center(
+              child: CircleAvatar(
+                radius: 30,
+                backgroundColor: AppColors.orange.withValues(alpha: 0.14),
+                child: Icon(icon, color: AppColors.orange, size: 30),
+              ),
             ),
             const SizedBox(height: 12),
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             Text(
               subtitle,
@@ -1216,12 +932,6 @@ class _EmptyCard extends StatelessWidget {
                 fontWeight: FontWeight.w400,
                 height: 1.45,
               ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: onAction,
-              icon: const Icon(Icons.add_rounded),
-              label: Text(actionLabel),
             ),
           ],
         ),
@@ -2050,11 +1760,3 @@ String _formatDateTime(DateTime date) {
   return '${_formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:'
       '${date.minute.toString().padLeft(2, '0')}';
 }
-
-String _formatTime(DateTime date) =>
-    '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-
-bool _isSameDay(DateTime left, DateTime right) =>
-    left.year == right.year &&
-    left.month == right.month &&
-    left.day == right.day;

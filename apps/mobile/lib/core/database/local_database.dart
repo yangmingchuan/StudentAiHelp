@@ -91,6 +91,42 @@ class LocalDailyAwards extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+class LocalRestDays extends Table {
+  IntColumn get childId => integer()();
+  TextColumn get restDate => text()();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {childId, restDate};
+}
+
+class LocalRewards extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get childId => integer()();
+  TextColumn get title => text()();
+  IntColumn get costStars => integer()();
+  TextColumn get iconName =>
+      text().withDefault(const Constant('redeem_rounded'))();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class LocalRewardRedemptions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get childId => integer()();
+  IntColumn get rewardId => integer().nullable()();
+  TextColumn get rewardTitle => text()();
+  IntColumn get costStars => integer()();
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+  DateTimeColumn get requestedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get resolvedAt => dateTime().nullable()();
+  TextColumn get resolutionNote => text().withDefault(const Constant(''))();
+}
+
 class SyncOperations extends Table {
   TextColumn get operationId => text()();
   TextColumn get operationType => text()();
@@ -199,6 +235,9 @@ class LocalMedicationReminders extends Table {
     LocalAssetSnapshots,
     LocalChildBadges,
     LocalDailyAwards,
+    LocalRestDays,
+    LocalRewards,
+    LocalRewardRedemptions,
     SyncOperations,
     LocalCycleProfiles,
     LocalCycleDayLogs,
@@ -242,12 +281,23 @@ class LocalDatabase extends _$LocalDatabase {
         ''');
       }
       if (from < 6) {
-        await migrator.addColumn(localMedicationLogs, localMedicationLogs.voidedAt);
-        await migrator.addColumn(localMedicationLogs, localMedicationLogs.voidReason);
+        await migrator.addColumn(
+          localMedicationLogs,
+          localMedicationLogs.voidedAt,
+        );
+        await migrator.addColumn(
+          localMedicationLogs,
+          localMedicationLogs.voidReason,
+        );
         await migrator.addColumn(
           localMedicationLogs,
           localMedicationLogs.correctedByLogId,
         );
+      }
+      if (from < 7) {
+        await migrator.createTable(localRestDays);
+        await migrator.createTable(localRewards);
+        await migrator.createTable(localRewardRedemptions);
       }
     },
   );

@@ -7,6 +7,7 @@ class GrowthHistorySnapshot {
     required this.totalTasks,
     required this.currentStreak,
     required this.bestStreak,
+    required this.weeklyReview,
   });
 
   final int childId;
@@ -14,6 +15,7 @@ class GrowthHistorySnapshot {
   final int totalTasks;
   final int currentStreak;
   final int bestStreak;
+  final GrowthWeeklyReview weeklyReview;
 
   GrowthHistoryDay? dayFor(DateTime date) {
     final key = growthDateKey(date);
@@ -31,6 +33,7 @@ class GrowthHistoryDay {
     required this.doneCount,
     required this.skippedCount,
     required this.tasks,
+    this.isRestDay = false,
   });
 
   final DateTime date;
@@ -38,10 +41,28 @@ class GrowthHistoryDay {
   final int doneCount;
   final int skippedCount;
   final List<GrowthHistoryTask> tasks;
+  final bool isRestDay;
 
-  bool get hasActivity => tasks.any((task) => task.status != TaskStatus.none);
+  bool get hasActivity =>
+      isRestDay || tasks.any((task) => task.status != TaskStatus.none);
   double get progress => totalCount == 0 ? 0 : doneCount / totalCount;
-  bool get isFull => totalCount > 0 && doneCount == totalCount;
+  bool get isFull => !isRestDay && totalCount > 0 && doneCount == totalCount;
+}
+
+class GrowthWeeklyReview {
+  const GrowthWeeklyReview({
+    required this.doneCount,
+    required this.totalCount,
+    required this.restDays,
+    required this.changeFromPrevious,
+  });
+
+  final int doneCount;
+  final int totalCount;
+  final int restDays;
+  final double changeFromPrevious;
+
+  double get completionRate => totalCount == 0 ? 0 : doneCount / totalCount;
 }
 
 class GrowthHistoryTask {

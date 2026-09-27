@@ -19,9 +19,11 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      body: navigationShell.currentIndex <= 2
-          ? navigationShell
-          : SafeArea(child: navigationShell),
+      // Every tab owns its content safe area. Keeping the shell itself edge to
+      // edge lets each scene's meadow/starfield continue behind the status
+      // bar and the floating glass navigation instead of exposing Scaffold's
+      // plain background on the profile tab.
+      body: navigationShell,
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: SafeArea(

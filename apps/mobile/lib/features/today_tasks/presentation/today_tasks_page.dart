@@ -638,28 +638,33 @@ class _StarFlight extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: animation,
-        builder: (context, child) {
-          final progress = animation.value;
-          if (progress == 0 || progress == 1) return const SizedBox.shrink();
-          final eased = Curves.easeOutCubic.transform(progress);
-          final control = Offset(
-            (start.dx + end.dx) / 2,
-            math.min(start.dy, end.dy) - 86,
-          );
-          final position = _quadratic(start, control, end, eased);
-          return Positioned(
-            left: position.dx - 16,
-            top: position.dy - 16,
-            child: Transform.rotate(
-              angle: math.pi * eased,
-              child: Icon(Icons.star_rounded, color: color, size: 32),
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final progress = animation.value;
+        final eased = Curves.easeOutCubic.transform(progress);
+        final control = Offset(
+          (start.dx + end.dx) / 2,
+          math.min(start.dy, end.dy) - 86,
+        );
+        final position = _quadratic(start, control, end, eased);
+        // Positioned must apply its layout data to a direct child of Stack.
+        // IgnorePointer belongs INSIDE it, never between Positioned and Stack.
+        // Keep the positioned child present at both endpoints to avoid relayout.
+        return Positioned(
+          left: position.dx - 16,
+          top: position.dy - 16,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: progress == 0 || progress == 1 ? 0 : 1,
+              child: Transform.rotate(
+                angle: math.pi * eased,
+                child: Icon(Icons.star_rounded, color: color, size: 32),
+              ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 

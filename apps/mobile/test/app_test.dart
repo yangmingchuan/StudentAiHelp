@@ -42,6 +42,25 @@ class _TestHomeController extends HomeController {
   ];
 
   @override
+  Future<void> setTaskStatus(int taskId, TaskStatus status) async {
+    _tasks = [
+      for (final task in _tasks)
+        TaskSummary(
+          id: task.id,
+          name: task.name,
+          iconName: task.iconName,
+          sortOrder: task.sortOrder,
+          status: task.id == taskId ? status : task.status,
+        ),
+    ];
+    state = AsyncData(_snapshot());
+  }
+
+  @override
+  Future<void> clearTaskStatus(int taskId) =>
+      setTaskStatus(taskId, TaskStatus.none);
+
+  @override
   Future<HomeSnapshot> build() async {
     return _snapshot();
   }
@@ -421,6 +440,22 @@ void main() {
 
       checkWeight(richText.text, FontWeight.w400);
     }
+
+    await tester.tap(find.byTooltip('完成'));
+    await tester.pump();
+    for (var frame = 0; frame < 60; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Completion animation must not break layout',
+      );
+      expect(find.byKey(TabHeader.frameKey), findsOneWidget);
+    }
+    expect(find.byTooltip('取消完成'), findsOneWidget);
+    await tester.tap(find.byTooltip('取消完成'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('完成'), findsOneWidget);
 
     await tester.tap(find.text('经期'));
     await tester.pumpAndSettle();

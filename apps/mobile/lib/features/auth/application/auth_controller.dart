@@ -173,7 +173,7 @@ class AuthController extends AsyncNotifier<AuthSession?> {
     final environment = ref.read(appEnvironmentProvider);
     if (!environment.isCloudConfigured) {
       throw const AuthException(
-        'CLOUDBASE_NOT_CONFIGURED',
+        'AUTH_NOT_CONFIGURED',
         '当前安装包缺少有效的服务配置，请使用带环境配置的版本重新安装。',
       );
     }

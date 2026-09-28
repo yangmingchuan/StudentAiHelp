@@ -1,0 +1,4 @@
+project_id = "onvhkbbfvvjvdzqsalcd"
+
+[functions.todo-auth]
+verify_jwt = false

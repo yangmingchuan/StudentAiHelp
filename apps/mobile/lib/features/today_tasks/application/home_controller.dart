@@ -10,6 +10,7 @@ class HomeController extends AsyncNotifier<HomeSnapshot> {
 
   @override
   Future<HomeSnapshot> build() {
+    ref.watch(homeRepositoryProvider);
     return _repository.load();
   }
 

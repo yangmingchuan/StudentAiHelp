@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:little_hero/core/sync/sync_id.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:little_hero/core/database/local_database.dart';
 import 'package:little_hero/features/child_profile/domain/growth_rewards.dart';
@@ -83,6 +84,7 @@ class GrowthRewardsRepository {
         .into(_db.localRewards)
         .insert(
           LocalRewardsCompanion.insert(
+            id: Value(SyncId.next()),
             childId: childId,
             title: cleanTitle,
             costStars: costStars,
@@ -138,6 +140,7 @@ class GrowthRewardsRepository {
           .into(_db.localRewardRedemptions)
           .insert(
             LocalRewardRedemptionsCompanion.insert(
+              id: Value(SyncId.next()),
               childId: childId,
               rewardId: Value(reward.id),
               rewardTitle: reward.title,

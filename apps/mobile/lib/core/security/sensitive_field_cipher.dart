@@ -40,25 +40,28 @@ class SensitiveFieldCipher {
   }
 
   Future<String> decrypt(String value) async {
-    if (value.isEmpty || !isProtected(value)) return value;
     try {
-      final parts = value.substring(_prefix.length).split('.');
-      if (parts.length != 3) return '';
-      final secretBox = SecretBox(
-        base64Url.decode(parts[1]),
-        nonce: base64Url.decode(parts[0]),
-        mac: Mac(base64Url.decode(parts[2])),
-      );
-      final clearText = await _algorithm.decrypt(
-        secretBox,
-        secretKey: await _readOrCreateKey(),
-      );
-      return utf8.decode(clearText);
+      return await decryptStrict(value);
     } catch (_) {
-      // A key can disappear after an OS restore or device credential reset.
-      // Returning an empty value avoids exposing ciphertext as health content.
       return '';
     }
+  }
+
+  /// Sync must stop on an unreadable key, rather than replacing cloud text with ''.
+  Future<String> decryptStrict(String value) async {
+    if (value.isEmpty || !isProtected(value)) return value;
+    final parts = value.substring(_prefix.length).split('.');
+    if (parts.length != 3) throw const FormatException('健康数据无法解密');
+    final secretBox = SecretBox(
+      base64Url.decode(parts[1]),
+      nonce: base64Url.decode(parts[0]),
+      mac: Mac(base64Url.decode(parts[2])),
+    );
+    final clearText = await _algorithm.decrypt(
+      secretBox,
+      secretKey: await _readOrCreateKey(),
+    );
+    return utf8.decode(clearText);
   }
 
   Future<SecretKey> _readOrCreateKey() {

@@ -14,7 +14,7 @@ final secureSessionStoreProvider = Provider<SecureSessionStore>((ref) {
     namespace: environment.sessionNamespace,
     migrateLegacy:
         environment.sessionNamespace ==
-        AppEnvironment.development.sessionNamespace,
+        AppEnvironment.legacyDevelopment.sessionNamespace,
   );
 });
 

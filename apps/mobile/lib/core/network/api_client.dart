@@ -14,7 +14,11 @@ final authDioProvider = Provider<Dio>((ref) {
       baseUrl: environment.authApiBaseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
-      headers: const {'Accept': 'application/json'},
+      headers: {
+        'Accept': 'application/json',
+        if (environment.usesSupabase)
+          'apikey': environment.supabasePublishableKey,
+      },
     ),
   );
 });
@@ -27,7 +31,11 @@ final functionDioProvider = Provider<Dio>((ref) {
       baseUrl: environment.functionApiBaseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
-      headers: const {'Accept': 'application/json'},
+      headers: {
+        'Accept': 'application/json',
+        if (environment.usesSupabase)
+          'apikey': environment.supabasePublishableKey,
+      },
     ),
   );
 });

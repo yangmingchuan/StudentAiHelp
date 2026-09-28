@@ -69,6 +69,61 @@ void main() {
     expect(AppEnvironment.fromDartDefines().isCloudConfigured, isTrue);
   });
   test(
+    'Supabase invalid_credentials error_code starts legacy migration',
+    () async {
+      final authDio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+      final functionDio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+      authDio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            handler.reject(
+              DioException(
+                requestOptions: options,
+                response: Response<Map<String, dynamic>>(
+                  requestOptions: options,
+                  statusCode: 400,
+                  data: {
+                    'code': 400,
+                    'error_code': 'invalid_credentials',
+                    'msg': 'Invalid login credentials',
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      );
+      var migrationCalls = 0;
+      functionDio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            migrationCalls++;
+            expect(options.path, '/functions/v1/todo-auth');
+            handler.resolve(
+              Response<Map<String, dynamic>>(
+                requestOptions: options,
+                statusCode: 200,
+                data: {
+                  'access_token': 'migrated-access',
+                  'refresh_token': 'migrated-refresh',
+                  'user': {'id': 'supabase-user-id'},
+                  'expires_in': 3600,
+                },
+              ),
+            );
+          },
+        ),
+      );
+      final result = await AuthApi(authDio, functionDio, supabase: true).signIn(
+        username: '13800138000',
+        password: 'old-password',
+        deviceId: 'test-device',
+      );
+      expect(migrationCalls, 1);
+      expect(result.subject, 'supabase-user-id');
+    },
+  );
+  test(
     'saved login survives provider/app restart without another login',
     () async {
       final first = container();
@@ -210,6 +265,28 @@ void main() {
     );
     expect(
       () => validateReleaseConfig({...prod, 'SECRET_KEY': 'test'}),
+      throwsFormatException,
+    );
+    final supabase = <String, String>{
+      'APP_FLAVOR': 'prod',
+      'SUPABASE_URL': 'https://onvhkbbfvvjvdzqsalcd.supabase.co',
+      'SUPABASE_PUBLISHABLE_KEY': 'sb_publishable_test-public-key-value',
+    };
+    expect(() => validateReleaseConfig(supabase), returnsNormally);
+    expect(
+      () => validateReleaseConfig({...supabase, 'APP_FLAVOR': 'dev'}),
+      throwsFormatException,
+    );
+    expect(
+      () => validateReleaseConfig({
+        ...supabase,
+        'SUPABASE_URL': 'http://example.com',
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () =>
+          validateReleaseConfig({...supabase, 'SERVICE_ROLE_KEY': 'forbidden'}),
       throwsFormatException,
     );
   });

@@ -32,7 +32,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/register';
 
       if (isLoading) {
-        return state.matchedLocation == '/splash' ? null : '/splash';
+        // Keep an in-progress login/register page mounted. Moving it to the
+        // splash screen disposes its form and hides request failures.
+        return isAuthRoute || state.matchedLocation == '/splash'
+            ? null
+            : '/splash';
       }
       if (!isSignedIn) {
         return isAuthRoute ? null : '/login';

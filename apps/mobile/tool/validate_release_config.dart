@@ -33,6 +33,37 @@ void main(List<String> args) {
 }
 
 void validateReleaseConfig(Map<String, String> config) {
+  if ((config['SUPABASE_URL'] ?? '').isNotEmpty ||
+      (config['SUPABASE_PUBLISHABLE_KEY'] ?? '').isNotEmpty) {
+    final url = Uri.tryParse(config['SUPABASE_URL'] ?? '');
+    final key = config['SUPABASE_PUBLISHABLE_KEY'] ?? '';
+    if (config['APP_FLAVOR'] != 'prod' ||
+        url == null ||
+        url.scheme != 'https' ||
+        url.host.isEmpty ||
+        url.userInfo.isNotEmpty ||
+        url.hasQuery ||
+        url.hasFragment ||
+        !key.startsWith('sb_publishable_') ||
+        key.contains('REPLACE_') ||
+        key.length < 25 ||
+        config.containsKey('CLOUDBASE_ENV_ID') ||
+        config.containsKey('AUTH_API_BASE_URL') ||
+        config.containsKey('FUNCTION_API_BASE_URL')) {
+      throw const FormatException(
+        '必须提供正式 Supabase HTTPS 地址和 publishable key，且不能混用 CloudBase 地址。',
+      );
+    }
+    for (final name in config.keys) {
+      if (RegExp(
+        r'(SECRET|PASSWORD|PRIVATE_KEY|ACCESS_TOKEN|REFRESH_TOKEN|SERVICE_ROLE)',
+        caseSensitive: false,
+      ).hasMatch(name)) {
+        throw const FormatException('客户端配置不能包含服务端密钥。');
+      }
+    }
+    return;
+  }
   final env = config['CLOUDBASE_ENV_ID'] ?? '';
   if (config['APP_FLAVOR'] != 'prod' ||
       env.trim().isEmpty ||

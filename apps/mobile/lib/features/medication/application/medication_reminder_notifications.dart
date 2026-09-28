@@ -73,7 +73,7 @@ class MedicationReminderNotifications {
     }
     if (!await requestPermission()) return false;
     await _plugin.zonedSchedule(
-      id: reminder.id,
+      id: reminder.id % 2147483647,
       title: '用药提醒',
       body: '打开应用查看提醒详情',
       scheduledDate: tz.TZDateTime.from(reminder.remindAt, tz.local),
@@ -100,6 +100,27 @@ class MedicationReminderNotifications {
 
   Future<void> cancel(int reminderId) async {
     await _ensureInitialized();
-    await _plugin.cancel(id: reminderId);
+    await _plugin.cancel(id: reminderId % 2147483647);
+  }
+
+  Future<void> reconcile(List<MedicationReminder> reminders) async {
+    await _ensureInitialized();
+    final expected = reminders
+        .where(
+          (r) =>
+              r.status == MedicationReminderStatus.scheduled &&
+              r.remindAt.isAfter(DateTime.now()),
+        )
+        .map((r) => r.id % 2147483647)
+        .toSet();
+    for (final pending in await _plugin.pendingNotificationRequests()) {
+      if ((pending.payload?.startsWith('medication-reminder:') ?? false) &&
+          !expected.contains(pending.id)) {
+        await _plugin.cancel(id: pending.id);
+      }
+    }
+    for (final reminder in reminders) {
+      if (expected.contains(reminder.id % 2147483647)) await schedule(reminder);
+    }
   }
 }

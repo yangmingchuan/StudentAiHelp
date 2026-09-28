@@ -11,6 +11,7 @@ import 'package:little_hero/features/child_profile/domain/growth_rewards.dart';
 import 'package:little_hero/features/mama_tools/presentation/cycle_widgets.dart';
 import 'package:little_hero/features/today_tasks/application/home_controller.dart';
 import 'package:little_hero/features/today_tasks/domain/home_snapshot.dart';
+import 'package:little_hero/core/sync/todo_sync_service.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -20,6 +21,7 @@ class ProfilePage extends ConsumerWidget {
     final homeState = ref.watch(homeControllerProvider);
     final historyState = ref.watch(growthHistoryProvider);
     final rewardsState = ref.watch(growthRewardsProvider);
+    final sync = ref.watch(todoSyncProvider);
 
     return CycleScene(
       child: ListView(
@@ -54,6 +56,10 @@ class ProfilePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
+          if (sync != null) ...[
+            _SyncStatusCard(sync: sync),
+            const SizedBox(height: 12),
+          ],
           _ProfileActionCard(
             icon: Icons.settings_rounded,
             title: '家长设置',
@@ -63,6 +69,67 @@ class ProfilePage extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class _SyncStatusCard extends StatelessWidget {
+  const _SyncStatusCard({required this.sync});
+  final TodoSyncService sync;
+
+  @override
+  Widget build(BuildContext context) => CycleCard(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: ValueListenableBuilder<String>(
+      valueListenable: sync.status,
+      builder: (context, status, _) => Row(
+        children: [
+          const Icon(Icons.cloud_sync_outlined, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              status,
+              style: const TextStyle(fontWeight: FontWeight.w400),
+            ),
+          ),
+          if (sync.conflicts > 0)
+            TextButton(
+              onPressed: () => _resolve(context),
+              child: const Text('处理'),
+            )
+          else
+            IconButton(
+              tooltip: '立即同步',
+              onPressed: sync.synchronize,
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> _resolve(BuildContext context) async {
+    final choice = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('处理同步冲突'),
+        content: Text('有 ${sync.conflicts} 条记录在两台设备上都被修改。请选择保留哪一边的内容。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('使用云端'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('使用本机'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('稍后'),
+          ),
+        ],
+      ),
+    );
+    if (choice != null) await sync.resolve(keepLocal: choice);
   }
 }
 
@@ -767,7 +834,7 @@ class _RewardShopCard extends ConsumerWidget {
               ),
           const SizedBox(height: 6),
           const Text(
-            '休息日与奖励记录保存在本机，暂不跨设备同步。',
+            '奖励记录会在同一账号的设备间同步。',
             style: TextStyle(fontSize: 12, color: Color(0xFF786B72)),
           ),
           if (rewards.redemptions.isNotEmpty)
@@ -973,7 +1040,7 @@ class _ParentSettingsPageState extends ConsumerState<ParentSettingsPage> {
                 Text('当前账号 ${session?.username ?? '加载中'}'),
                 const SizedBox(height: 8),
                 const Text(
-                  '休息日与奖励记录保存在本机，暂不跨设备同步。',
+                  '数据按当前账号同步；未上传的修改会保留在本机。',
                   style: TextStyle(fontSize: 13),
                 ),
                 const Divider(height: 24),

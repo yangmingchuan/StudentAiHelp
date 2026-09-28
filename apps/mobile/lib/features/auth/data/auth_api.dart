@@ -5,11 +5,16 @@ import 'package:little_hero/features/auth/domain/auth_exception.dart';
 import 'package:little_hero/features/auth/domain/auth_session.dart';
 
 final authApiProvider = Provider<AuthApi>((ref) {
-  return AuthApi(ref.watch(authDioProvider), ref.watch(functionDioProvider));
+  return AuthApi(
+    ref.watch(authDioProvider),
+    ref.watch(functionDioProvider),
+    supabase: ref.watch(appEnvironmentProvider).usesSupabase,
+  );
 });
 
 class AuthApi {
-  const AuthApi(this._authDio, this._functionDio);
+  const AuthApi(this._authDio, this._functionDio, {this.supabase = false});
+  final bool supabase;
 
   final Dio _authDio;
   final Dio _functionDio;
@@ -20,6 +25,35 @@ class AuthApi {
     required String deviceId,
   }) async {
     try {
+      if (supabase) {
+        try {
+          final response = await _authDio.post<Map<String, dynamic>>(
+            '/auth/v1/token?grant_type=password',
+            data: {
+              'email': 'todo.$username@accounts.little-hero.invalid',
+              'password': password,
+            },
+          );
+          return _parseSession(response.data, username: username);
+        } on DioException catch (error) {
+          final body = error.response?.data;
+          if (body is! Map ||
+              body['error_code'] != 'invalid_credentials' &&
+                  body['code'] != 'invalid_credentials' &&
+                  body['error'] != 'invalid_credentials') {
+            rethrow;
+          }
+          final migrated = await _functionDio.post<Map<String, dynamic>>(
+            '/functions/v1/todo-auth',
+            data: {
+              'action': 'migrate',
+              'username': username,
+              'password': password,
+            },
+          );
+          return _parseSession(migrated.data, username: username);
+        }
+      }
       final response = await _authDio.post<Map<String, dynamic>>(
         '/auth/v1/token',
         data: {
@@ -41,11 +75,12 @@ class AuthApi {
   }) async {
     try {
       await _functionDio.post<Map<String, dynamic>>(
-        '/api/auth/register',
+        supabase ? '/functions/v1/todo-auth' : '/api/auth/register',
         data: {
           'username': username,
           'password': password,
           'privacyAccepted': true,
+          if (supabase) 'action': 'register',
         },
       );
     } on DioException catch (error) {
@@ -60,8 +95,11 @@ class AuthApi {
   }) async {
     try {
       final response = await _authDio.post<Map<String, dynamic>>(
-        '/auth/v1/token',
-        data: {'grant_type': 'refresh_token', 'refresh_token': refreshToken},
+        supabase ? '/auth/v1/token?grant_type=refresh_token' : '/auth/v1/token',
+        data: {
+          if (!supabase) 'grant_type': 'refresh_token',
+          'refresh_token': refreshToken,
+        },
         options: Options(headers: {'x-device-id': deviceId}),
       );
       return _parseSession(
@@ -80,7 +118,7 @@ class AuthApi {
   }) async {
     try {
       await _authDio.post<Map<String, dynamic>>(
-        '/auth/v1/user/signout',
+        supabase ? '/auth/v1/logout?scope=local' : '/auth/v1/user/signout',
         data: const <String, dynamic>{},
         options: Options(
           headers: {
@@ -123,14 +161,18 @@ class AuthApi {
     final data = error.response?.data;
     if (data is Map) {
       final code =
+          data['error_code']?.toString() ??
           data['code']?.toString() ??
           data['error']?.toString() ??
           'AUTH_REQUEST_FAILED';
       final serverMessage =
-          data['message']?.toString() ?? data['error_description']?.toString();
+          data['message']?.toString() ??
+          data['msg']?.toString() ??
+          data['error_description']?.toString();
 
       if (code == 'INVALID_USERNAME_OR_PASSWORD' ||
-          code == 'invalid_username_or_password') {
+          code == 'invalid_username_or_password' ||
+          code == 'invalid_credentials') {
         return const AuthException('INVALID_USERNAME_OR_PASSWORD', '账号或密码不正确。');
       }
       if (code == 'USERNAME_ALREADY_EXISTS') {

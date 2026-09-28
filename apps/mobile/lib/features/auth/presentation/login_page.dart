@@ -44,6 +44,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   void _showError(Object error) {
     final message = error is AuthException ? error.message : '登录失败，请稍后重试。';
+    debugPrint(
+      '登录失败: ${error is AuthException ? error.code : error.runtimeType}',
+    );
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));

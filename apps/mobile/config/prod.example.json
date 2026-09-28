@@ -1,6 +1,5 @@
 {
   "APP_FLAVOR": "prod",
-  "CLOUDBASE_ENV_ID": "REPLACE_WITH_PRODUCTION_ENV_ID",
-  "AUTH_API_BASE_URL": "https://REPLACE_WITH_PRODUCTION_ENV_ID.api.tcloudbasegateway.com",
-  "FUNCTION_API_BASE_URL": "https://REPLACE_WITH_PRODUCTION_ENV_ID.service.tcloudbase.com"
+  "SUPABASE_URL": "https://onvhkbbfvvjvdzqsalcd.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_bg2UEFNq0rurAGZjHaBEXg_tIZWjYDz"
 }

@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:little_hero/core/sync/sync_id.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:little_hero/core/database/local_database.dart';
 import 'package:little_hero/core/security/sensitive_field_cipher.dart';
@@ -16,6 +17,17 @@ class MedicationRepository {
 
   final LocalDatabase _db;
   final SensitiveFieldCipher _cipher;
+
+  Future<List<MedicationReminder>> scheduledReminders() async {
+    final rows =
+        await (_db.select(_db.localMedicationReminders)..where(
+              (r) =>
+                  r.status.equals('scheduled') &
+                  r.remindAt.isBiggerOrEqualValue(DateTime.now()),
+            ))
+            .get();
+    return Future.wait(rows.map(_toReminder));
+  }
 
   Future<MedicationSnapshot> load() async {
     final memberRows =
@@ -80,6 +92,7 @@ class MedicationRepository {
         .into(_db.localMedicationMembers)
         .insert(
           LocalMedicationMembersCompanion.insert(
+            id: Value(SyncId.next()),
             name: name,
             relation: Value(_blankAsDefault(draft.relation, '家庭成员')),
             ageNote: Value(draft.ageNote.trim()),
@@ -103,6 +116,7 @@ class MedicationRepository {
         .into(_db.localMedicines)
         .insert(
           LocalMedicinesCompanion.insert(
+            id: Value(SyncId.next()),
             name: name,
             specification: Value(draft.specification.trim()),
             defaultDosage: Value(
@@ -230,6 +244,7 @@ class MedicationRepository {
         .into(_db.localMedicationLogs)
         .insert(
           LocalMedicationLogsCompanion.insert(
+            id: Value(SyncId.next()),
             memberId: Value(draft.memberId),
             medicineId: Value(draft.medicineId),
             memberName: memberName,
@@ -257,6 +272,7 @@ class MedicationRepository {
         .into(_db.localMedicationReminders)
         .insert(
           LocalMedicationRemindersCompanion.insert(
+            id: Value(SyncId.next()),
             memberId: Value(draft.memberId),
             medicineId: Value(draft.medicineId),
             sourceLogId: Value(sourceLogId),

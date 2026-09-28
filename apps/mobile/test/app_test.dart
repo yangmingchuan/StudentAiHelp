@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:little_hero/app/app.dart';
 import 'package:little_hero/core/widgets/tab_header.dart';
 import 'package:little_hero/features/auth/application/auth_controller.dart';
+import 'package:little_hero/features/auth/domain/auth_exception.dart';
 import 'package:little_hero/features/auth/domain/auth_session.dart';
 import 'package:little_hero/features/child_profile/data/growth_history_repository.dart';
 import 'package:little_hero/features/child_profile/data/growth_rewards_repository.dart';
@@ -27,6 +29,26 @@ class _SignedInAuthController extends AuthController {
       username: '13800138000',
       expiresAt: DateTime.now().add(const Duration(hours: 1)),
     );
+  }
+}
+
+class _FailingAuthController extends AuthController {
+  _FailingAuthController(this.gate);
+  final Completer<void> gate;
+
+  @override
+  Future<AuthSession?> build() async => null;
+
+  @override
+  Future<void> signIn({
+    required String username,
+    required String password,
+  }) async {
+    state = const AsyncLoading();
+    await gate.future;
+    const failure = AuthException('NETWORK_ERROR', '网络连接失败，请检查网络后重试。');
+    state = AsyncError(failure, StackTrace.current);
+    throw failure;
   }
 }
 
@@ -256,6 +278,33 @@ class _EmptyMedicationController extends MedicationController {
 }
 
 void main() {
+  testWidgets('login stays visible during request and shows its failure', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _FailingAuthController(gate),
+          ),
+        ],
+        child: const LittleHeroApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '13800138000');
+    await tester.enterText(find.byType(TextFormField).last, 'example-password');
+    await tester.tap(find.text('登录'));
+    await tester.pump();
+    expect(find.text('登录中…'), findsOneWidget);
+    expect(find.text('闯关小勇士'), findsOneWidget);
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('网络连接失败，请检查网络后重试。'), findsOneWidget);
+    expect(find.text('登录'), findsOneWidget);
+  });
+
   testWidgets(
     'empty medication sections have one action and fit narrow screens',
     (tester) async {

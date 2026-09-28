@@ -1,3 +1,4 @@
+-- Historical schema draft; not applied. Superseded by todo_ migrations.
 -- Little Hero: secure family, tasks, medication and cycle data.
 -- Apply in Supabase SQL Editor only after the chosen Supabase Auth flow is live.
 -- The mobile client must use the anon/publishable key only; never embed service_role.

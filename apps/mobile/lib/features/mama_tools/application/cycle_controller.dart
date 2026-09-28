@@ -14,6 +14,7 @@ class CycleController extends AsyncNotifier<CycleSnapshot> {
 
   @override
   Future<CycleSnapshot> build() {
+    ref.watch(cycleRepositoryProvider);
     return _repository.load(
       visibleMonth: _visibleMonth,
       selectedDate: _selectedDate,
@@ -52,6 +53,7 @@ class CycleController extends AsyncNotifier<CycleSnapshot> {
   }
 
   Future<void> goToToday() => selectDate(DateTime.now());
+  Future<void> refresh() => _reload();
 
   Future<void> _reload() async {
     final version = ++_loadVersion;

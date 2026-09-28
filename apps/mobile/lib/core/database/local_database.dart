@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -6,11 +8,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:little_hero/core/database/local_database_config.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:little_hero/core/config/app_environment.dart';
+import 'package:little_hero/core/network/api_client.dart';
+import 'package:little_hero/core/security/secure_session_store.dart';
+import 'package:little_hero/core/sync/todo_sync_store.dart';
+import 'package:little_hero/features/auth/application/auth_controller.dart';
 
 part 'local_database.g.dart';
 
 final localDatabaseProvider = Provider<LocalDatabase>((ref) {
-  final database = LocalDatabase();
+  final environment = ref.watch(appEnvironmentProvider);
+  final account = ref.watch(
+    authControllerProvider.select(
+      (state) => (state.asData?.value?.subject, state.asData?.value?.username),
+    ),
+  );
+  final database = environment.usesSupabase
+      ? LocalDatabase.account(
+          environment.sessionNamespace,
+          account.$1,
+          account.$2,
+        )
+      : LocalDatabase();
   ref.onDispose(database.close);
   return database;
 });
@@ -248,15 +268,64 @@ class LocalMedicationReminders extends Table {
   ],
 )
 class LocalDatabase extends _$LocalDatabase {
-  LocalDatabase() : super(_openConnection());
+  LocalDatabase() : syncEnabled = false, super(_openConnection());
 
-  LocalDatabase.forTesting(super.executor);
+  LocalDatabase.account(String namespace, String? subject, String? username)
+    : syncEnabled = true,
+      super(_openAccountConnection(namespace, subject, username));
+
+  LocalDatabase.forTesting(super.executor, {this.syncEnabled = false});
+  final bool syncEnabled;
 
   @override
   int get schemaVersion => LocalDatabaseConfig.schemaVersion;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    beforeOpen: (_) async {
+      if (!syncEnabled) return;
+      final prior = await customSelect(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='todo_local_meta'",
+      ).get();
+      if (prior.isEmpty) {
+        // Old autoincrement IDs were only unique within one phone. Re-key imported
+        // standalone entities and their references before exposing them to sync.
+        final offset = (Random.secure().nextInt(1 << 29) + 1) * (1 << 22);
+        for (final table in [
+          'local_medication_members',
+          'local_medicines',
+          'local_medication_logs',
+          'local_medication_reminders',
+          'local_rewards',
+          'local_reward_redemptions',
+        ]) {
+          await customStatement('UPDATE $table SET id=id+? WHERE id<4194304', [
+            offset,
+          ]);
+        }
+        for (final entry in {
+          'local_medication_logs': [
+            'member_id',
+            'medicine_id',
+            'corrected_by_log_id',
+          ],
+          'local_medication_reminders': [
+            'member_id',
+            'medicine_id',
+            'source_log_id',
+          ],
+          'local_reward_redemptions': ['reward_id'],
+        }.entries) {
+          for (final field in entry.value) {
+            await customStatement(
+              'UPDATE ${entry.key} SET $field=$field+? WHERE $field<4194304',
+              [offset],
+            );
+          }
+        }
+      }
+      await TodoSyncStore.install(this);
+    },
     onCreate: (migrator) => migrator.createAll(),
     onUpgrade: (migrator, from, to) async {
       if (from < 3) {
@@ -301,6 +370,42 @@ class LocalDatabase extends _$LocalDatabase {
       }
     },
   );
+}
+
+String accountDatabaseName(String namespace, String subject) =>
+    'todo_${base64Url.encode(utf8.encode('$namespace|$subject')).replaceAll('=', '')}.sqlite';
+
+LazyDatabase _openAccountConnection(
+  String namespace,
+  String? subject,
+  String? username,
+) {
+  return LazyDatabase(() async {
+    if (subject == null) return NativeDatabase.memory();
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File(
+      p.join(directory.path, accountDatabaseName(namespace, subject)),
+    );
+    if (!await file.exists()) {
+      final old = await SecureSessionStore(
+        const FlutterSecureStorage(),
+        namespace: AppEnvironment.legacyDevelopment.sessionNamespace,
+      ).readSession();
+      final source = File(p.join(directory.path, LocalDatabaseConfig.fileName));
+      if (old?.username == username &&
+          username != null &&
+          await source.exists()) {
+        final legacy = LocalDatabase();
+        try {
+          // SQLite creates a consistent copy, including any committed WAL pages.
+          await legacy.customStatement('VACUUM INTO ?', [file.path]);
+        } finally {
+          await legacy.close();
+        }
+      }
+    }
+    return NativeDatabase.createInBackground(file);
+  });
 }
 
 LazyDatabase _openConnection() {

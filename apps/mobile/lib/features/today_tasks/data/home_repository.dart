@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:little_hero/core/sync/todo_sync_service.dart';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,17 +13,29 @@ final homeRepositoryProvider = Provider<HomeRepository>((ref) {
     ref.watch(localDatabaseProvider),
     ref.watch(homeApiProvider),
     ref.watch(operationIdFactoryProvider),
+    sync: ref.watch(todoSyncProvider),
   );
 });
 
 class HomeRepository {
-  const HomeRepository(this._db, this._api, this._operationIdFactory);
+  const HomeRepository(
+    this._db,
+    this._api,
+    this._operationIdFactory, {
+    this.sync,
+  });
+  final TodoSyncService? sync;
 
   final LocalDatabase _db;
   final HomeApi _api;
   final OperationIdFactory _operationIdFactory;
 
   Future<HomeSnapshot> load({bool refreshRemote = true}) async {
+    if (sync != null) {
+      final ok = !refreshRemote || await sync!.synchronize();
+      await _ensureLocalDefaults();
+      return _readSnapshot(isStale: !ok, message: ok ? null : '尚未同步，记录已保存在本机');
+    }
     await _ensureLocalDefaults();
     if (refreshRemote) {
       try {
@@ -286,6 +299,10 @@ class HomeRepository {
   }
 
   Future<void> _flushPendingOperations() async {
+    if (sync != null) {
+      sync!.requestSoon();
+      return;
+    }
     final operations =
         await (_db.select(_db.syncOperations)
               ..where((table) => table.status.equals('pending'))
@@ -716,6 +733,7 @@ class HomeRepository {
     required String entityId,
     required Map<String, Object?> payload,
   }) {
+    if (sync != null) return Future.value();
     return _db
         .into(_db.syncOperations)
         .insertOnConflictUpdate(

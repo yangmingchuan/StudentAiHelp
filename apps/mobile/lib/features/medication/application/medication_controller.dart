@@ -16,11 +16,16 @@ class MedicationController extends AsyncNotifier<MedicationSnapshot> {
 
   @override
   Future<MedicationSnapshot> build() {
+    ref.watch(medicationRepositoryProvider);
     return _repository.load();
   }
 
   Future<void> addMember(MedicationMemberDraft draft) async {
     await _repository.addMember(draft);
+    state = await AsyncValue.guard(build);
+  }
+
+  Future<void> refresh() async {
     state = await AsyncValue.guard(build);
   }
 

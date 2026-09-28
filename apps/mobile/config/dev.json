@@ -1,6 +1,5 @@
 {
   "APP_FLAVOR": "dev",
-  "CLOUDBASE_ENV_ID": "little-hero-dev-d7f95sqy70d3a475",
-  "AUTH_API_BASE_URL": "https://little-hero-dev-d7f95sqy70d3a475.api.tcloudbasegateway.com",
-  "FUNCTION_API_BASE_URL": "https://little-hero-dev-d7f95sqy70d3a475.service.tcloudbase.com"
+  "SUPABASE_URL": "https://onvhkbbfvvjvdzqsalcd.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_bg2UEFNq0rurAGZjHaBEXg_tIZWjYDz"
 }

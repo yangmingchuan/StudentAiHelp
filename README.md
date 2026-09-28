@@ -2,7 +2,7 @@
 
 一款面向家庭内部使用的儿童习惯养成 App。孩子通过完成每日任务获得星星、勋章和即时反馈，家长可以管理任务和账号；同时提供妈妈工具和家庭用药记录等照护辅助功能。
 
-当前项目处于 MVP 阶段，重点打通 Flutter 移动端、本地数据库、CloudBase 认证和业务 HTTP API 的基础闭环。
+当前项目使用 Flutter、Drift/SQLite 与现有 Supabase 项目同步；旧 CloudBase 认证仅用于账号首次迁移及过渡期注册。
 
 ## 当前功能
 
@@ -11,14 +11,14 @@
 - 家长区任务管理：新增、编辑、删除、排序
 - 妈妈工具：周期设置、日历、分析、建议和日记入口
 - 家庭用药：成员、药品、用药记录、提醒和效期信息展示
-- 本地优先的数据层，支持后续同步到 CloudBase
+- 本地优先的数据层，任务、经期、用药、成长记录会同步到 Supabase
 
 ## 技术栈
 
 - 移动端：Flutter、Riverpod、go_router、Dio、Drift/SQLite
 - 安全存储：flutter_secure_storage
-- 后端：CloudBase HTTP Functions、Node.js
-- 数据库设计：CloudBase MySQL schema migration
+- 后端：Supabase Auth、Postgres、Edge Function；旧 CloudBase 注册与账号验证仅作迁移桥接
+- 数据库设计：`supabase/migrations/202609280001_todo_sync.sql` 与 `202609280002_todo_auth_rate_limit.sql`
 
 ## 项目结构
 
@@ -46,7 +46,7 @@ fvm flutter pub get
 
 ## 发布配置
 
-发布前复制 `apps/mobile/config/prod.example.json` 为 `apps/mobile/config/prod.json`，填入**真实正式环境**的 EnvId 和两个 HTTPS 地址。此文件被 Git 忽略，不能放密码、SecretId、SecretKey 或 Token。
+发布前复制 `apps/mobile/config/prod.example.json` 为 `apps/mobile/config/prod.json`。模板已填写当前 Supabase 项目的 HTTPS 地址和公开客户端 key；不能放密码、service_role、SecretKey 或 Token。
 
 ```bash
 cd apps/mobile
@@ -54,7 +54,9 @@ cd apps/mobile
 ./scripts/build_release.sh ipa config/prod.json       # iOS 发布包
 ```
 
-Android 和 iOS 的 Release 编译都会校验这份配置：漏配、误用 dev、非 HTTPS、占位地址或意外放入密钥会直接阻止构建，避免把“尚未配置 CloudBase”发布给用户。
+Android 和 iOS 的 Release 编译都会校验这份配置：漏配、非 HTTPS、占位地址或意外放入服务端密钥会直接阻止构建。
+
+首次升级后需使用原账号密码登录一次；迁移函数核验旧 CloudBase 账号，随后由 Supabase 管理会话。旧版 SQLite 文件原样保留。仅当本机安全存储中的旧账号与新登录账号一致时，旧数据才会自动导入该账号的独立数据库。跨设备需要在两台设备各自安装新版并登录同一账号，进入「我的」可查看同步状态、处理同一记录的冲突。账号是手机号**格式**，当前未验证号码归属。健康文字通过 TLS 传到 Supabase 后受 RLS 限制，本机仍加密保存；这不是端到端加密。
 
 登录成功后的 access token 与 refresh token 会保存在系统安全存储中（Android Keystore / iOS Keychain）。access token 到期会自动刷新；仅当 refresh token 明确失效或撤销时才重新登录，断网不会清除本机登录状态。
 

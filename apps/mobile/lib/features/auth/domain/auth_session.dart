@@ -23,7 +23,12 @@ class AuthSession {
       accessToken: json['access_token'] as String? ?? '',
       refreshToken:
           json['refresh_token'] as String? ?? fallbackRefreshToken ?? '',
-      subject: json['sub']?.toString() ?? '',
+      subject:
+          json['sub']?.toString() ??
+          (json['user'] is Map
+              ? (json['user'] as Map)['id']?.toString()
+              : null) ??
+          '',
       username: username,
       expiresAt: DateTime.now().toUtc().add(Duration(seconds: expiresIn)),
     );

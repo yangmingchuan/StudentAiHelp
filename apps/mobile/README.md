@@ -9,21 +9,29 @@ fvm flutter pub get
 ./scripts/run_dev.sh
 ```
 
-默认使用 `dev` 环境。开发配置在 `config/dev.json`；Android Studio 请选择共享的 `Development` 运行配置。普通 Debug Run 也会使用同一个开发环境，避免参数遗漏。
+开发配置在 `config/dev.json`，指向现有 Supabase 项目；Android Studio 请选择共享的 `Development` 运行配置。普通 Debug Run 也使用该配置。
 
 ## 正式发布
 
 ```bash
 cp config/prod.example.json config/prod.json
-# 编辑 prod.json，填写正式 CloudBase EnvId 与正式 HTTPS 地址；不要写入密码、Token 或 SecretKey。
+# 模板已填写当前 Supabase 项目；不要写入密码、Token 或服务端密钥。
 ./scripts/build_release.sh appbundle config/prod.json
 ```
 
 Release 构建会拒绝缺失配置、dev 环境、占位地址、HTTP 地址和客户端密钥；这一检查同时挂在 Android 与 iOS 的原生构建阶段，因此不会因为绕过脚本而失效。
 
-客户端通过 HTTPS 调用 CloudBase Auth 和业务 HTTP API，不接入 CloudBase Web SDK，也不在安装包中保存 API Key。
+客户端通过 HTTPS 调用 Supabase Auth 与 `todo_sync` RPC，包内仅放公开 publishable key；数据库服务密钥只在 Supabase Edge Function 运行时使用。
 
-注册由 `/api/auth/register` HTTP 云函数处理；登录、刷新会话和退出直接调用 CloudBase Auth OpenAPI。
+旧账号首次登录经 `todo-auth` 函数验证 CloudBase 密码并创建 Supabase 账号；以后登录、刷新和退出直接调用 Supabase Auth。过渡期注册仍依赖旧 CloudBase 注册接口来保留原手机号格式账号命名空间。手机号归属没有短信验证。
+
+## 数据迁移与同步
+
+- 同一账号在两台设备上各自保存本地 SQLite，云端按 Supabase `auth.uid()` 隔离。新增的公开业务表全带 `todo_` 前缀，原项目表不改。
+- SQLite 触发器把离线写入记录在本地队列；联网后上传，后台恢复时下载。任务、历史、休息日、奖励、经期、用药及更正/提醒都包含在内。
+- 两台设备修改同一条记录时，上传会停在冲突队列；在「我的」中选择本机或云端。离线期间不要卸载 App，未上传的更改只在本机。
+- 旧数据库仅在旧登录账号与新登录账号相同、且该账号尚未生成新数据库时自动复制；源文件不删除。若旧会话已清除，不会猜测旧文件属于哪个账号，也不会自动导入。
+- 手机间同步健康文字时使用 TLS，接收设备会用自己的安全存储密钥重新加密。Supabase 管理员可读取云端明文，RLS 防止普通账号互看数据。
 
 ## 快速运行 iOS dev
 

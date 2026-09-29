@@ -1,6 +1,6 @@
-# 闯关小勇士移动客户端
+# 猫咪打卡移动客户端
 
-Flutter Android/iOS 共享工程。
+Flutter Android/iOS 共享工程。应用在 Android 和 iOS 上均显示为「猫咪打卡」，并使用统一的猫咪图标与启动页。
 
 ## 本地运行
 
@@ -48,6 +48,31 @@ Release 构建会拒绝缺失配置、dev 环境、占位地址、HTTP 地址和
 ```
 
 进入 Flutter 交互模式后，直接按 `r` 热重载，按 `R` 热重启，按 `q` 停止运行。
+
+## 运行到 iPhone 真机
+
+先通过数据线连接并解锁 iPhone；首次连接时，在手机上信任此电脑、开启「开发者模式」，并在「设置 → 通用 → VPN 与设备管理」中信任开发者证书。查看 Flutter 识别到的设备：
+
+```bash
+fvm flutter devices
+```
+
+输出中 iPhone 名称后的长串 ID 就是设备 ID。将它传给开发脚本即可从 Xcode/Flutter 调试器启动：
+
+```bash
+./scripts/run_dev.sh -d "设备 ID"
+```
+
+Debug 包仅用于连着 Xcode 或 `flutter run` 的开发调试。iOS 会在 Debug 包脱离调试器、被杀掉后再从桌面独立启动时主动结束进程；这是 Flutter 的调试限制，不是业务闪退。
+
+若要验证「杀掉 App 后，再从桌面点图标」的冷启动，请改用 Profile 包：
+
+```bash
+fvm flutter build ios --profile --dart-define-from-file=config/dev.json
+xcrun devicectl device install app --device "设备 ID" build/ios/iphoneos/Runner.app
+```
+
+Profile 包支持独立冷启动，也保留性能分析能力；正式上架请使用带正式配置的 Release 构建。
 
 ## 登录保持
 

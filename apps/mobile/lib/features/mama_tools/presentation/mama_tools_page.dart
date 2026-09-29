@@ -149,7 +149,7 @@ class _SetupState extends ConsumerState<_Setup> {
       const SizedBox(height: 12),
       const CycleCard(
         child: Text(
-          '记录保存在当前设备。预测仅供日程参考，不用于避孕、怀孕判断或疾病诊断。',
+          '记录会先保存在本机，登录后尝试同步到云端；同步状态可在「我的」查看。预测仅供日程参考，不用于避孕、怀孕判断或疾病诊断。',
           style: TextStyle(fontSize: 12, height: 1.5),
         ),
       ),

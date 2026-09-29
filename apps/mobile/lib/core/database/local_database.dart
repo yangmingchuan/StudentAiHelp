@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math';
 
 import 'package:drift/drift.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:little_hero/core/database/local_database_config.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite3;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:little_hero/core/config/app_environment.dart';
 import 'package:little_hero/core/network/api_client.dart';
@@ -395,18 +397,24 @@ LazyDatabase _openAccountConnection(
       if (old?.username == username &&
           username != null &&
           await source.exists()) {
-        final legacy = LocalDatabase();
-        try {
-          // SQLite creates a consistent copy, including any committed WAL pages.
-          await legacy.customStatement('VACUUM INTO ?', [file.path]);
-        } finally {
-          await legacy.close();
-        }
+        // A raw connection avoids creating a second Drift LocalDatabase while
+        // the account database opens. VACUUM INTO includes committed WAL pages.
+        await copyLegacyDatabase(source.path, file.path);
       }
     }
     return NativeDatabase.createInBackground(file);
   });
 }
+
+Future<void> copyLegacyDatabase(String sourcePath, String targetPath) =>
+    Isolate.run(() {
+      final legacy = sqlite3.sqlite3.open(sourcePath);
+      try {
+        legacy.execute('VACUUM INTO ?', [targetPath]);
+      } finally {
+        legacy.close();
+      }
+    });
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {

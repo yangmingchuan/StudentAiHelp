@@ -134,6 +134,7 @@ class TodoSyncStore {
   );
 
   Future<List<Map<String, dynamic>>> pending() async {
+    await _discardPristineCyclePlaceholder();
     final rows = await db.customSelect(
       '''SELECT o.*,coalesce(v.revision,0) AS base_revision
       FROM todo_local_outbox o LEFT JOIN todo_local_versions v
@@ -162,6 +163,60 @@ class TodoSyncStore {
       });
     }
     return changes;
+  }
+
+  // Older builds inserted a blank cycle profile merely by opening the page.
+  // That row could conflict with an already configured profile on another phone,
+  // and the incoming profile would then be skipped as the cursor advanced.
+  // A genuinely configured profile (including any date) must never be discarded.
+  Future<void> _discardPristineCyclePlaceholder() async {
+    final candidates = await db
+        .customSelect(
+          "SELECT payload, operation_id FROM todo_local_outbox "
+          "WHERE entity='cycle_profiles' AND record_key='[1]' AND deleted=0",
+        )
+        .get();
+    if (candidates.isEmpty) return;
+    final payload =
+        jsonDecode(candidates.single.read<String>('payload')) as Map;
+    if (payload['is_setup_complete'] == 1 ||
+        payload['is_setup_complete'] == true ||
+        payload['last_period_start_date'] != null ||
+        payload['birth_date'] != null ||
+        payload['period_length_days'] != 5 ||
+        payload['cycle_length_days'] != 28 ||
+        payload['cloud_sync_enabled'] == 1 ||
+        payload['cloud_sync_enabled'] == true) {
+      return;
+    }
+    final current = await db
+        .customSelect(
+          'SELECT is_setup_complete, last_period_start_date, birth_date, '
+          'period_length_days, cycle_length_days, cloud_sync_enabled '
+          'FROM local_cycle_profiles WHERE id=1',
+        )
+        .getSingleOrNull();
+    if (current == null ||
+        current.read<int>('is_setup_complete') != 0 ||
+        current.readNullable<String>('last_period_start_date') != null ||
+        current.readNullable<String>('birth_date') != null ||
+        current.read<int>('period_length_days') != 5 ||
+        current.read<int>('cycle_length_days') != 28 ||
+        current.read<int>('cloud_sync_enabled') != 0) {
+      return;
+    }
+    await db.transaction(() async {
+      await db.customStatement(
+        "DELETE FROM todo_local_outbox WHERE entity='cycle_profiles' "
+        'AND record_key=\'[1]\' AND operation_id=?',
+        [candidates.single.read<String>('operation_id')],
+      );
+      // A previous pull may have skipped the cloud row while this outbox item
+      // existed. Replay it so the configured remote profile can now apply.
+      await db.customStatement(
+        "UPDATE todo_local_meta SET value='0' WHERE key='cursor'",
+      );
+    });
   }
 
   Future<int> conflictCount() async =>

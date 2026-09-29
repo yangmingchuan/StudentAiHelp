@@ -13,7 +13,7 @@ class LittleHeroApp extends ConsumerWidget {
 
     return SyncLifecycle(
       child: MaterialApp.router(
-        title: '闯关小勇士',
+        title: '猫咪打卡',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         routerConfig: router,

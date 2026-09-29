@@ -11,6 +11,7 @@ import 'package:little_hero/features/child_profile/data/growth_history_repositor
 import 'package:little_hero/features/child_profile/data/growth_rewards_repository.dart';
 import 'package:little_hero/features/child_profile/domain/growth_history.dart';
 import 'package:little_hero/features/child_profile/domain/growth_rewards.dart';
+import 'package:little_hero/features/child_profile/presentation/profile_page.dart';
 import 'package:little_hero/features/mama_tools/application/cycle_controller.dart';
 import 'package:little_hero/features/mama_tools/domain/cycle_models.dart';
 import 'package:little_hero/features/medication/application/medication_controller.dart';
@@ -278,6 +279,37 @@ class _EmptyMedicationController extends MedicationController {
 }
 
 void main() {
+  testWidgets('history grid fits a narrow iPhone with enlarged text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          growthHistoryProvider.overrideWith((ref) async => _testHistory()),
+        ],
+        child: MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1.5)),
+            child: child!,
+          ),
+          home: const GrowthHistoryPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('28 天打卡表'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('login stays visible during request and shows its failure', (
     tester,
   ) async {
@@ -298,7 +330,7 @@ void main() {
     await tester.tap(find.text('登录'));
     await tester.pump();
     expect(find.text('登录中…'), findsOneWidget);
-    expect(find.text('闯关小勇士'), findsOneWidget);
+    expect(find.text('猫咪打卡'), findsOneWidget);
     gate.complete();
     await tester.pumpAndSettle();
     expect(find.text('网络连接失败，请检查网络后重试。'), findsOneWidget);

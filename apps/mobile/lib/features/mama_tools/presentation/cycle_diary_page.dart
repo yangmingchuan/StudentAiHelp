@@ -92,7 +92,7 @@ class _CycleDiaryPageState extends ConsumerState<CycleDiaryPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      future ? '未来日期仅供查看预测' : '这一天的感受，都值得被记住。\n记录保存在当前设备。',
+                      future ? '未来日期仅供查看预测' : '这一天的感受，都值得被记住。\n记录先保存在本机，登录后会尝试同步。',
                       style: const TextStyle(fontSize: 14, height: 1.6),
                     ),
                   ),

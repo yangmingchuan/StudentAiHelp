@@ -30,6 +30,7 @@ void main() {
 
   test('setup does not require or fabricate a birthday', () async {
     expect((await load(today)).needsSetup, isTrue);
+    expect(await db.select(db.localCycleProfiles).get(), isEmpty);
     await setup();
     final result = await load(today);
     expect(result.needsSetup, isFalse);

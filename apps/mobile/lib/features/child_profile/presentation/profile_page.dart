@@ -405,65 +405,81 @@ class _HistoryGrid extends StatelessWidget {
   final DateTime? selectedDate;
 
   @override
-  Widget build(BuildContext context) => GridView.builder(
-    padding: EdgeInsets.zero,
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    itemCount: days.length,
-    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 7,
-      mainAxisSpacing: 7,
-      crossAxisSpacing: 7,
-      childAspectRatio: 0.86,
-    ),
-    itemBuilder: (context, index) {
-      final day = days[index];
-      final selected =
-          selectedDate != null &&
-          growthDateKey(day.date) == growthDateKey(selectedDate!);
-      return Semantics(
-        button: onSelect != null,
-        label: '${_shortDate(day.date)}，完成 ${day.doneCount}/${day.totalCount}',
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onSelect == null ? null : () => onSelect!(day),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.orange.withValues(alpha: 0.15)
-                  : Colors.white.withValues(alpha: 0.48),
-              borderRadius: BorderRadius.circular(12),
-              border: selected
-                  ? Border.all(color: AppColors.orange.withValues(alpha: 0.62))
-                  : null,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _ProgressRing(
-                  progress: day.progress,
-                  color: day.isFull
-                      ? AppColors.green
-                      : day.isRestDay
-                      ? AppColors.blue
-                      : AppColors.orange,
-                  size: 30,
-                  center: day.isRestDay
-                      ? const Icon(Icons.hotel_rounded, size: 13)
-                      : Text(
-                          '${day.doneCount}',
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                ),
-                const SizedBox(height: 3),
-                Text('${day.date.day}', style: const TextStyle(fontSize: 11)),
-              ],
+  Widget build(BuildContext context) {
+    // A fixed aspect ratio can produce cells just shorter than their ring and
+    // date label on narrow iPhones because text metrics include fractional px.
+    final scaledLabelHeight = MediaQuery.textScalerOf(context).scale(15);
+    final calculatedHeight = 37 + scaledLabelHeight;
+    final cellHeight = calculatedHeight < 56 ? 56.0 : calculatedHeight;
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: days.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        mainAxisSpacing: 7,
+        crossAxisSpacing: 7,
+        mainAxisExtent: cellHeight,
+      ),
+      itemBuilder: (context, index) {
+        final day = days[index];
+        final selected =
+            selectedDate != null &&
+            growthDateKey(day.date) == growthDateKey(selectedDate!);
+        return Semantics(
+          button: onSelect != null,
+          label:
+              '${_shortDate(day.date)}，完成 ${day.doneCount}/${day.totalCount}',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onSelect == null ? null : () => onSelect!(day),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: selected
+                    ? AppColors.orange.withValues(alpha: 0.15)
+                    : Colors.white.withValues(alpha: 0.48),
+                borderRadius: BorderRadius.circular(12),
+                border: selected
+                    ? Border.all(
+                        color: AppColors.orange.withValues(alpha: 0.62),
+                      )
+                    : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _ProgressRing(
+                    progress: day.progress,
+                    color: day.isFull
+                        ? AppColors.green
+                        : day.isRestDay
+                        ? AppColors.blue
+                        : AppColors.orange,
+                    size: 30,
+                    center: day.isRestDay
+                        ? const Icon(Icons.hotel_rounded, size: 13)
+                        : Text(
+                            '${day.doneCount}',
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${day.date.day}',
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.fade,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    },
-  );
+        );
+      },
+    );
+  }
 }
 
 class _ProfileActionCard extends StatelessWidget {

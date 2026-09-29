@@ -24,7 +24,6 @@ class CycleRepository {
     required DateTime visibleMonth,
     required DateTime selectedDate,
   }) async {
-    await _ensureProfileRow();
     final profile = await _loadProfileSummary();
     final today = cycleDateOnly(DateTime.now());
     final month = DateTime(visibleMonth.year, visibleMonth.month);
@@ -132,7 +131,7 @@ class CycleRepository {
                 await _encrypt(jsonEncode(symptoms.toSet().toList())),
               ),
               operationId: Value(_operationIdFactory.create()),
-              // Records remain local; no cloud sync is offered by this feature.
+              // The account sync outbox is populated by the database trigger.
               isDirty: const Value(false),
               updatedAt: Value(DateTime.now()),
             ),
@@ -163,9 +162,9 @@ class CycleRepository {
     );
   }
 
-  Future<LocalCycleProfile> _profileRow() => (_db.select(
+  Future<LocalCycleProfile?> _profileRow() => (_db.select(
     _db.localCycleProfiles,
-  )..where((t) => t.id.equals(1))).getSingle();
+  )..where((t) => t.id.equals(1))).getSingleOrNull();
   Future<void> _ensureProfileRow() async {
     await _db
         .into(_db.localCycleProfiles)
@@ -238,7 +237,11 @@ class CycleRepository {
 
   Future<CycleProfileSummary?> _loadProfileSummary() async {
     final row = await _profileRow();
-    if (!row.isSetupComplete || row.lastPeriodStartDate == null) return null;
+    if (row == null ||
+        !row.isSetupComplete ||
+        row.lastPeriodStartDate == null) {
+      return null;
+    }
     final lastPeriod = await _readAndMigrateProfileDate(
       row.lastPeriodStartDate,
       isLastPeriod: true,

@@ -148,6 +148,106 @@ void main() {
   );
 
   test(
+    'an old blank cycle profile cannot block an existing cloud profile',
+    () async {
+      final db = LocalDatabase.forTesting(
+        NativeDatabase.memory(),
+        syncEnabled: true,
+      );
+      addTearDown(db.close);
+      final store = TodoSyncStore(
+        db,
+        SensitiveFieldCipher(const FlutterSecureStorage()),
+      );
+      await db.customStatement(
+        'INSERT INTO local_cycle_profiles(id) VALUES(1)',
+      );
+      final operation =
+          (await db
+                  .customSelect(
+                    "SELECT operation_id FROM todo_local_outbox WHERE entity='cycle_profiles'",
+                  )
+                  .getSingle())
+              .read<String>('operation_id');
+      await store.apply({
+        'accepted': [],
+        'conflicts': [
+          {
+            'entity': 'cycle_profiles',
+            'key': '[1]',
+            'operation_id': operation,
+            'remote': {
+              'revision': 2,
+              'deleted': false,
+              'payload': {
+                'id': 1,
+                'is_setup_complete': 1,
+                'last_period_start_date': '2026-09-26',
+              },
+            },
+          },
+        ],
+        'rows': [],
+        'cursor': 2,
+      });
+      expect(await store.conflictCount(), 1);
+      expect(await store.pending(), isEmpty);
+      expect(await store.conflictCount(), 0);
+      expect(await store.cursor(), 0);
+      await store.apply({
+        'accepted': [],
+        'conflicts': [],
+        'rows': [
+          {
+            'entity': 'cycle_profiles',
+            'key': '[1]',
+            'revision': 2,
+            'deleted': false,
+            'payload': {
+              'id': 1,
+              'is_setup_complete': 1,
+              'last_period_start_date': '2026-09-26',
+              'period_length_days': 5,
+              'cycle_length_days': 28,
+            },
+          },
+        ],
+        'cursor': 2,
+      });
+      final profile = await db.select(db.localCycleProfiles).getSingle();
+      expect(profile.isSetupComplete, isTrue);
+      expect(
+        await store.cipher.decrypt(profile.lastPeriodStartDate!),
+        '2026-09-26',
+      );
+      expect(await store.pending(), isEmpty);
+    },
+  );
+
+  test('a real local cycle setting stays in the outbox', () async {
+    final db = LocalDatabase.forTesting(
+      NativeDatabase.memory(),
+      syncEnabled: true,
+    );
+    addTearDown(db.close);
+    final store = TodoSyncStore(
+      db,
+      SensitiveFieldCipher(const FlutterSecureStorage()),
+    );
+    await db.customStatement(
+      'INSERT INTO local_cycle_profiles(id,is_setup_complete,last_period_start_date) '
+      'VALUES(1,1,?)',
+      [await store.cipher.encrypt('2026-09-27')],
+    );
+    final changes = await store.pending();
+    expect(changes, hasLength(1));
+    expect(
+      (changes.single['payload'] as Map)['last_period_start_date'],
+      '2026-09-27',
+    );
+  });
+
+  test(
     'remote parent edit updates its row without removing linked habits',
     () async {
       final db = LocalDatabase.forTesting(

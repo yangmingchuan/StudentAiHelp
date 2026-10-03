@@ -9,7 +9,16 @@ fvm flutter pub get
 ./scripts/run_dev.sh
 ```
 
-开发配置在 `config/dev.json`，指向现有 Supabase 项目；Android Studio 请选择共享的 `Development` 运行配置。普通 Debug Run 也使用该配置。
+开发配置在 `config/dev.json`，指向现有 Supabase 项目；Android Studio 真机日常运行请选择共享的 `Release` 配置，并点击 Run（三角形），不要点击 Debug。`Release` 使用 `config/prod.json`，可脱离调试器冷启动，不支持热重载；调试或模拟器运行请选择 `Development`。首次使用 Release 时先按下方说明创建 `config/prod.json`。
+
+## iOS 真机签名
+
+工程最低支持 iOS 15，Pods 的最低版本也统一设为至少 15，以兼容 Xcode 27。
+用 Xcode 打开 `ios/Runner.xcworkspace`，在 Settings → Accounts 添加自己的 Apple 账号，
+然后在 Runner → Signing & Capabilities 中启用 Automatically manage signing，选择有权限的 Team。
+真机运行不需要之前模拟器使用的临时 `XCODE_XCCONFIG_FILE` 环境变量。
+Release 使用 `prod.json` 中的正式配置；不要卸载 App，以保留未同步的本地数据。
+开发签名有有效期，免费 Personal Team 的描述文件有效期为 7 天，过期需重新签名安装。
 
 ## 正式发布
 
@@ -73,6 +82,16 @@ xcrun devicectl device install app --device "设备 ID" build/ios/iphoneos/Runne
 ```
 
 Profile 包支持独立冷启动，也保留性能分析能力；正式上架请使用带正式配置的 Release 构建。
+
+## 家长密码与任务模板
+
+首次进入「我的 → 家长设置」需要输入并确认四位数字密码；以后进入家长设置或任务管理均需解锁。在家长区内部切换页面无需重复输入，离开家长区、切到后台或重启后重新锁定。家长设置中可以修改密码。
+
+忘记四位密码时，可联网验证**当前账号的登录密码**后设置新密码；验证失败不会清除登录会话或打卡数据。账号登录密码也遗忘时仍需联系内测管理员，不提供短信找回。连续输错五次暂停尝试六十秒。
+
+四位密码使用随机盐和 PBKDF2 保存于系统安全存储，按环境与账号隔离，仅保护本机入口，不通过业务数据同步；其他设备需各自设置。首次安装后应由家长先完成设置。
+
+新增任务提供家务（扫地、擦桌子）、运动（跳绳、户外运动）、阅读（阅读绘本、朗读故事）六个快捷选项与独立透明图标。点击选项后仍可修改名称；已有任务不会自动增加。图标标识随任务同步，生成提示词见 `specs/task-icon-prompts.md`。
 
 ## 登录保持
 

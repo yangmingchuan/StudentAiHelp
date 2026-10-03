@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:little_hero/app/router.dart';
+import 'package:little_hero/features/parent_access/data/parent_pin_store.dart';
+import 'support/fake_parent_pin_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -89,13 +92,13 @@ class _TestHomeController extends HomeController {
   }
 
   @override
-  Future<void> addTask(String name) async {
+  Future<void> addTask(String name, {String? iconName}) async {
     _tasks = [
       ..._tasks,
       TaskSummary(
         id: 202,
         name: name.trim(),
-        iconName: 'task_alt_rounded',
+        iconName: iconName ?? 'task_alt_rounded',
         sortOrder: 20,
         status: TaskStatus.none,
       ),
@@ -279,6 +282,83 @@ class _EmptyMedicationController extends MedicationController {
 }
 
 void main() {
+  testWidgets(
+    'direct parent routes require PIN and leaving or backgrounding relocks',
+    (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          authControllerProvider.overrideWith(_SignedInAuthController.new),
+          parentPinStoreProvider.overrideWithValue(
+            FakeParentPinStore(pin: '1234'),
+          ),
+          homeControllerProvider.overrideWith(_TestHomeController.new),
+          growthHistoryProvider.overrideWith((ref) async => _testHistory()),
+          growthRewardsProvider.overrideWith((ref) async => _testRewards),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const LittleHeroApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final router = container.read(appRouterProvider);
+      router.go('/todos');
+      await tester.pumpAndSettle();
+      expect(find.text('家长验证'), findsOneWidget);
+      expect(find.byTooltip('新增 Todo'), findsNothing);
+      await tester.enterText(find.byKey(const ValueKey('parent-pin')), '0000');
+      await tester.tap(find.text('解锁'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('新增 Todo'), findsNothing);
+      await tester.enterText(find.byKey(const ValueKey('parent-pin')), '1234');
+      await tester.tap(find.text('解锁'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('新增 Todo'), findsOneWidget);
+      await tester.tap(find.byTooltip('新增 Todo'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('扫地'));
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+      expect(find.text('扫地'), findsOneWidget);
+      expect(
+        container
+            .read(homeControllerProvider)
+            .asData
+            ?.value
+            .tasks
+            .last
+            .iconName,
+        'task_sweep',
+      );
+      router.go('/profile');
+      await tester.pumpAndSettle();
+      router.go('/todos');
+      await tester.pumpAndSettle();
+      expect(find.text('家长验证'), findsOneWidget);
+      await tester.enterText(find.byKey(const ValueKey('parent-pin')), '1234');
+      await tester.tap(find.text('解锁'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('新增 Todo'));
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      router.go('/todos');
+      await tester.pumpAndSettle();
+      expect(find.text('家长验证'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('history grid fits a narrow iPhone with enlarged text', (
     tester,
   ) async {
@@ -386,6 +466,9 @@ void main() {
         ProviderScope(
           overrides: [
             authControllerProvider.overrideWith(_SignedInAuthController.new),
+            parentPinStoreProvider.overrideWithValue(
+              FakeParentPinStore(pin: '1234'),
+            ),
             homeControllerProvider.overrideWith(_TestHomeController.new),
             growthHistoryProvider.overrideWith((ref) async => _testHistory()),
             growthRewardsProvider.overrideWith((ref) async => _testRewards),
@@ -404,6 +487,9 @@ void main() {
       await tester.ensureVisible(find.text('家长设置'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('家长设置'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('parent-pin')), '1234');
+      await tester.tap(find.text('解锁'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.byTooltip('新增奖励'),
@@ -449,6 +535,9 @@ void main() {
       ProviderScope(
         overrides: [
           authControllerProvider.overrideWith(_SignedInAuthController.new),
+          parentPinStoreProvider.overrideWithValue(
+            FakeParentPinStore(pin: '1234'),
+          ),
           homeControllerProvider.overrideWith(_TestHomeController.new),
           cycleControllerProvider.overrideWith(_TestCycleController.new),
           medicationControllerProvider.overrideWith(
@@ -467,6 +556,10 @@ void main() {
     final assetPaths = tester
         .widgetList<Image>(find.byType(Image))
         .map((image) => image.image)
+        .map(
+          (provider) =>
+              provider is ResizeImage ? provider.imageProvider : provider,
+        )
         .whereType<AssetImage>()
         .map((asset) => asset.assetName)
         .toList();
@@ -584,6 +677,9 @@ void main() {
     await tester.ensureVisible(find.text('家长设置'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('家长设置'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('parent-pin')), '1234');
+    await tester.tap(find.text('解锁'));
     await tester.pumpAndSettle();
     expect(find.text('我的'), findsNothing);
     await tester.scrollUntilVisible(

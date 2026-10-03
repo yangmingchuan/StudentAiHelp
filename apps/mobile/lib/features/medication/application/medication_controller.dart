@@ -57,11 +57,8 @@ class MedicationController extends AsyncNotifier<MedicationSnapshot> {
     state = await AsyncValue.guard(build);
   }
 
-  Future<void> voidLog({required int logId, required String reason}) async {
-    final canceledReminderIds = await _repository.voidLog(
-      logId: logId,
-      reason: reason,
-    );
+  Future<void> deleteLog(int logId) async {
+    final canceledReminderIds = await _repository.deleteLog(logId);
     for (final reminderId in canceledReminderIds) {
       await _notifications.cancel(reminderId);
     }

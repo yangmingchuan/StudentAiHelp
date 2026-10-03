@@ -15,6 +15,7 @@ import 'package:little_hero/features/mama_tools/presentation/mama_tools_page.dar
 import 'package:little_hero/features/medication/presentation/medication_home_page.dart';
 import 'package:little_hero/features/today_tasks/presentation/today_tasks_page.dart';
 import 'package:little_hero/features/todos/presentation/todo_management_page.dart';
+import 'package:little_hero/features/parent_access/presentation/parent_gate.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -56,13 +57,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/register',
         builder: (context, state) => const RegisterPage(),
       ),
-      GoRoute(
-        path: '/todos',
-        builder: (context, state) => const TodoManagementPage(),
-      ),
-      GoRoute(
-        path: '/profile/parent-settings',
-        builder: (context, state) => const ParentSettingsPage(),
+      ShellRoute(
+        builder: (context, state, child) => ParentGate(
+          key: ValueKey(
+            ref.read(authControllerProvider).asData?.value?.subject,
+          ),
+          child: child,
+        ),
+        routes: [
+          GoRoute(
+            path: '/todos',
+            builder: (context, state) => const TodoManagementPage(),
+          ),
+          GoRoute(
+            path: '/profile/parent-settings',
+            builder: (context, state) => const ParentSettingsPage(),
+          ),
+          GoRoute(
+            path: '/profile/parent-password',
+            builder: (context, state) => const ParentPinPage(change: true),
+          ),
+        ],
       ),
       GoRoute(
         path: '/profile/history',

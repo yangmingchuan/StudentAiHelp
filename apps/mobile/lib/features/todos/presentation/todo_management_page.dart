@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:little_hero/core/theme/app_theme.dart';
 import 'package:little_hero/core/widgets/page_heading.dart';
 import 'package:little_hero/features/today_tasks/application/home_controller.dart';
 import 'package:little_hero/features/today_tasks/domain/home_snapshot.dart';
+import 'package:little_hero/features/todos/domain/task_templates.dart';
 
 class TodoManagementPage extends ConsumerWidget {
   const TodoManagementPage({super.key});
@@ -13,7 +15,18 @@ class TodoManagementPage extends ConsumerWidget {
     final state = ref.watch(homeControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Todo 管理')),
+      appBar: AppBar(
+        title: const Text('Todo 管理'),
+        leading: BackButton(
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         tooltip: '新增 Todo',
         onPressed: () => _showTodoDialog(context, ref),
@@ -104,6 +117,11 @@ class _TodoTile extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 6),
+            if (templateForTask(task.name, task.iconName)
+                case final template?) ...[
+              Image.asset(template.asset, width: 40, height: 40),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               child: Text(
                 task.name,
@@ -178,6 +196,7 @@ Future<void> _showTodoDialog(
     context: context,
     builder: (context) => _TodoFormDialog(
       initialTitle: task?.name ?? '',
+      initialIcon: task?.iconName,
       isEditing: task != null,
     ),
   );
@@ -192,11 +211,13 @@ Future<void> _showTodoDialog(
 
   try {
     if (task == null) {
-      await ref.read(homeControllerProvider.notifier).addTask(result.title);
+      await ref
+          .read(homeControllerProvider.notifier)
+          .addTask(result.title, iconName: result.iconName);
     } else {
       await ref
           .read(homeControllerProvider.notifier)
-          .updateTask(task.id, result.title);
+          .updateTask(task.id, result.title, iconName: result.iconName);
     }
   } catch (error) {
     if (!context.mounted) return;
@@ -244,16 +265,22 @@ Future<void> _confirmDelete(
 }
 
 class _TodoFormResult {
-  const _TodoFormResult(this.title);
+  const _TodoFormResult(this.title, this.iconName);
 
   final String title;
+  final String? iconName;
 }
 
 class _TodoFormDialog extends StatefulWidget {
-  const _TodoFormDialog({required this.initialTitle, required this.isEditing});
+  const _TodoFormDialog({
+    required this.initialTitle,
+    required this.isEditing,
+    this.initialIcon,
+  });
 
   final String initialTitle;
   final bool isEditing;
+  final String? initialIcon;
 
   @override
   State<_TodoFormDialog> createState() => _TodoFormDialogState();
@@ -261,11 +288,14 @@ class _TodoFormDialog extends StatefulWidget {
 
 class _TodoFormDialogState extends State<_TodoFormDialog> {
   late final TextEditingController _titleController;
+  String? _iconName;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.initialTitle);
+    _iconName = widget.initialIcon;
   }
 
   @override
@@ -278,11 +308,86 @@ class _TodoFormDialogState extends State<_TodoFormDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.isEditing ? '编辑任务' : '新增任务'),
-      content: TextField(
-        controller: _titleController,
-        autofocus: true,
-        maxLength: 14,
-        decoration: const InputDecoration(labelText: '任务名称'),
+      content: SizedBox(
+        width: 360,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * .5,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _titleController,
+                  autofocus: widget.isEditing,
+                  maxLength: 14,
+                  decoration: InputDecoration(
+                    labelText: '任务名称',
+                    errorText: _error,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('选一个小任务，也可以自己填写'),
+                for (final category in ['家务', '运动', '阅读']) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16, bottom: 8),
+                    child: Text(category),
+                  ),
+                  Row(
+                    children: [
+                      for (final template in taskTemplates.where(
+                        (item) => item.category == category,
+                      ))
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: Semantics(
+                              selected: _iconName == template.iconName,
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 10,
+                                  ),
+                                  backgroundColor:
+                                      _iconName == template.iconName
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.primaryContainer
+                                      : null,
+                                ),
+                                onPressed: () => setState(() {
+                                  _titleController.text = template.name;
+                                  _iconName = template.iconName;
+                                  _error = null;
+                                }),
+                                child: Column(
+                                  children: [
+                                    Image.asset(
+                                      template.asset,
+                                      width: 48,
+                                      height: 48,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      template.name,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
       actions: [
         TextButton(
@@ -290,8 +395,18 @@ class _TodoFormDialogState extends State<_TodoFormDialog> {
           child: const Text('取消'),
         ),
         FilledButton(
-          onPressed: () =>
-              Navigator.pop(context, _TodoFormResult(_titleController.text)),
+          onPressed: () {
+            final name = _titleController.text.trim();
+            final length = name.runes.fold<double>(
+              0,
+              (total, rune) => total + (rune <= 255 ? .5 : 1),
+            );
+            if (name.isEmpty || length > 7) {
+              setState(() => _error = '请填写任务名称，最多 7 个汉字');
+              return;
+            }
+            Navigator.pop(context, _TodoFormResult(name, _iconName));
+          },
           child: const Text('保存'),
         ),
       ],

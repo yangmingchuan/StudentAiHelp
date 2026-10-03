@@ -200,7 +200,9 @@ class CycleRepository {
     final predicted =
         profile != null &&
         elapsed >= 0 &&
-        !date.isBefore(today) &&
+        // Keep the latest period's inferred span visible after days pass.
+        // Older, unconfirmed cycles are not backfilled as period history.
+        (elapsed < profile.periodLengthDays || !date.isBefore(today)) &&
         elapsed % profile.cycleLengthDays < profile.periodLengthDays;
     final phase = profile == null
         ? CyclePhase.setup

@@ -42,6 +42,23 @@ void main() {
       HomeRepository(db, _FakeHomeApi(), const OperationIdFactory(Uuid()));
 
   test(
+    'template icon persists through save, rename and local reload',
+    () async {
+      final snapshot = await home().addTask(
+        name: '跳绳',
+        iconName: 'task_jump_rope',
+      );
+      final task = snapshot.tasks.single;
+      expect(task.iconName, 'task_jump_rope');
+      await home().updateTask(taskId: task.id, name: '跳绳十分钟');
+      final reloaded = await home().load(refreshRemote: false);
+      expect(reloaded.tasks.single.iconName, 'task_jump_rope');
+      final sweep = await home().addTask(name: '扫地');
+      expect(sweep.tasks.last.iconName, 'task_sweep');
+    },
+  );
+
+  test(
     'refresh preserves pending and approved deductions without duplicating them',
     () async {
       final repository = GrowthRewardsRepository(db);

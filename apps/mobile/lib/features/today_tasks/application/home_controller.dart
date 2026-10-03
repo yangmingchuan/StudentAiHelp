@@ -53,14 +53,18 @@ class HomeController extends AsyncNotifier<HomeSnapshot> {
     );
   }
 
-  Future<void> addTask(String name) async {
-    state = await AsyncValue.guard(() => _repository.addTask(name: name));
+  Future<void> addTask(String name, {String? iconName}) async {
+    final snapshot = await _repository.addTask(name: name, iconName: iconName);
+    state = AsyncData(snapshot);
   }
 
-  Future<void> updateTask(int taskId, String name) async {
-    state = await AsyncValue.guard(
-      () => _repository.updateTask(taskId: taskId, name: name),
+  Future<void> updateTask(int taskId, String name, {String? iconName}) async {
+    final snapshot = await _repository.updateTask(
+      taskId: taskId,
+      name: name,
+      iconName: iconName,
     );
+    state = AsyncData(snapshot);
   }
 
   Future<void> deleteTask(int taskId) async {

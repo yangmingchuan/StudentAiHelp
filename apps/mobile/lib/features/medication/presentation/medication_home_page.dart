@@ -68,7 +68,7 @@ class _MedicationHomePageState extends ConsumerState<MedicationHomePage> {
                     onAdd: () => _showLogSheet(context, snapshot),
                     onAmend: (log) =>
                         _showLogSheet(context, snapshot, originalLog: log),
-                    onVoid: _voidLog,
+                    onDelete: _deleteLog,
                   ),
                   _MedicationSection.members => _MemberSection(
                     members: snapshot.members,
@@ -151,12 +151,12 @@ class _MedicationHomePageState extends ConsumerState<MedicationHomePage> {
     );
   }
 
-  Future<void> _voidLog(MedicationLogEntry log) async {
+  Future<void> _deleteLog(MedicationLogEntry log) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('作废这条记录？'),
-        content: const Text('记录会保留并标注为已作废，不会从历史中删除。'),
+        title: const Text('删除这条用药记录？'),
+        content: const Text('删除后，这条记录和关联提醒将从列表中移除，且无法恢复。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -164,16 +164,14 @@ class _MedicationHomePageState extends ConsumerState<MedicationHomePage> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('作废'),
+            child: const Text('删除'),
           ),
         ],
       ),
     );
     if (confirmed != true || !mounted) return;
     try {
-      await ref
-          .read(medicationControllerProvider.notifier)
-          .voidLog(logId: log.id, reason: '用户作废');
+      await ref.read(medicationControllerProvider.notifier).deleteLog(log.id);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -643,13 +641,13 @@ class _LogSection extends StatelessWidget {
     required this.logs,
     required this.onAdd,
     required this.onAmend,
-    required this.onVoid,
+    required this.onDelete,
   });
 
   final List<MedicationLogEntry> logs;
   final VoidCallback onAdd;
   final ValueChanged<MedicationLogEntry> onAmend;
-  final ValueChanged<MedicationLogEntry> onVoid;
+  final ValueChanged<MedicationLogEntry> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -670,7 +668,7 @@ class _LogSection extends StatelessWidget {
           )
         else
           for (final log in logs) ...[
-            _LogCard(log: log, onAmend: onAmend, onVoid: onVoid),
+            _LogCard(log: log, onAmend: onAmend, onDelete: onDelete),
             const SizedBox(height: 12),
           ],
       ],
@@ -682,12 +680,12 @@ class _LogCard extends StatelessWidget {
   const _LogCard({
     required this.log,
     required this.onAmend,
-    required this.onVoid,
+    required this.onDelete,
   });
 
   final MedicationLogEntry log;
   final ValueChanged<MedicationLogEntry> onAmend;
-  final ValueChanged<MedicationLogEntry> onVoid;
+  final ValueChanged<MedicationLogEntry> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -706,10 +704,7 @@ class _LogCard extends StatelessWidget {
         ),
         title: Text(
           '${log.memberName} · ${log.medicineName}',
-          style: TextStyle(
-            fontWeight: FontWeight.w400,
-            decoration: log.isVoided ? TextDecoration.lineThrough : null,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w400),
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
@@ -722,38 +717,28 @@ class _LogCard extends StatelessWidget {
               if (log.note.isNotEmpty) Text('备注：${log.note}'),
               if (log.nextReminderAt != null)
                 Text('下次提醒：${_formatDateTime(log.nextReminderAt!)}'),
-              if (log.isVoided)
-                Text(
-                  '已作废：${log.voidReason}',
-                  style: const TextStyle(color: AppColors.coral),
-                ),
             ],
           ),
         ),
-        trailing: log.isVoided
-            ? const Icon(Icons.history_rounded, color: AppColors.coral)
-            : PopupMenuButton<_LogAction>(
-                onSelected: (action) {
-                  if (action == _LogAction.amend) {
-                    onAmend(log);
-                  } else {
-                    onVoid(log);
-                  }
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: _LogAction.amend, child: Text('更正记录')),
-                  PopupMenuItem(
-                    value: _LogAction.voidRecord,
-                    child: Text('作废记录'),
-                  ),
-                ],
-              ),
+        trailing: PopupMenuButton<_LogAction>(
+          onSelected: (action) {
+            if (action == _LogAction.amend) {
+              onAmend(log);
+            } else {
+              onDelete(log);
+            }
+          },
+          itemBuilder: (context) => const [
+            PopupMenuItem(value: _LogAction.amend, child: Text('更正记录')),
+            PopupMenuItem(value: _LogAction.deleteRecord, child: Text('删除记录')),
+          ],
+        ),
       ),
     );
   }
 }
 
-enum _LogAction { amend, voidRecord }
+enum _LogAction { amend, deleteRecord }
 
 class _MemberSection extends StatelessWidget {
   const _MemberSection({required this.members, required this.onAdd});

@@ -142,6 +142,45 @@ void main() {
     },
   );
   test(
+    'latest period stays continuous across elapsed days and month boundaries',
+    () async {
+      final start = DateTime(2024, 12, 29);
+      await setup(start);
+      final snapshot = await load(DateTime(start.year + 1, 1, 1));
+      for (var offset = 0; offset < 5; offset++) {
+        final date = DateTime(start.year, start.month, start.day + offset);
+        final expected = offset == 0
+            ? CyclePhase.menstrual
+            : CyclePhase.predictedPeriod;
+        expect((await repository.loadDay(date)).phase, expected);
+        expect(
+          snapshot.calendarDays
+              .singleWhere((day) => day.date == date)
+              .info
+              .phase,
+          expected,
+        );
+      }
+      final noBleeding = DateTime(start.year, start.month, start.day + 2);
+      await repository.saveRecord(
+        date: noBleeding,
+        flow: CycleFlow.noBleeding,
+        symptoms: [],
+        diaryText: '',
+      );
+      expect((await repository.loadDay(noBleeding)).phase, CyclePhase.normal);
+      for (final offset in [-1, 5, 28]) {
+        expect(
+          (await repository.loadDay(
+            DateTime(start.year, start.month, start.day + offset),
+          )).phase,
+          CyclePhase.normal,
+        );
+      }
+    },
+  );
+
+  test(
     'calendar includes leap day and changing months keeps selection visible',
     () async {
       await setup(DateTime(2024, 1, 1));

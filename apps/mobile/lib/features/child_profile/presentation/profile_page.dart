@@ -1003,6 +1003,7 @@ class _ParentSettingsPageState extends ConsumerState<ParentSettingsPage> {
     final rewards = ref.watch(growthRewardsProvider);
     return CycleScene(
       title: '家长设置',
+      onBack: () => context.go('/profile'),
       child: ListView(
         padding: cyclePagePadding(context),
         children: [
@@ -1012,6 +1013,13 @@ class _ParentSettingsPageState extends ConsumerState<ParentSettingsPage> {
               title: Text('陪伴孩子，按自己的节奏成长'),
               subtitle: Text('在这里安排任务、管理奖励和账号。'),
             ),
+          ),
+          const SizedBox(height: 12),
+          _ProfileActionCard(
+            icon: Icons.lock_outline_rounded,
+            title: '修改家长密码',
+            subtitle: '验证原密码，或使用账号登录密码重设',
+            onTap: () => context.push('/profile/parent-password'),
           ),
           const SizedBox(height: 12),
           _ProfileActionCard(

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:little_hero/features/today_tasks/application/home_controller.dart';
 import 'package:little_hero/features/today_tasks/domain/home_snapshot.dart';
+import 'package:little_hero/features/todos/domain/task_templates.dart';
 
 class TodayTasksPage extends ConsumerStatefulWidget {
   const TodayTasksPage({super.key});
@@ -438,7 +439,11 @@ class _TaskTile extends StatelessWidget {
               SizedBox(
                 width: 70,
                 height: 70,
-                child: Image.asset(visual.asset, fit: BoxFit.contain),
+                child: Image.asset(
+                  visual.asset,
+                  fit: BoxFit.contain,
+                  cacheWidth: 210,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -524,6 +529,10 @@ class _TaskVisual {
   const _TaskVisual({required this.asset, required this.hint});
 
   factory _TaskVisual.forTask(TaskSummary task) {
+    final template = templateForTask(task.name, task.iconName);
+    if (template != null) {
+      return _TaskVisual(asset: template.asset, hint: template.hint);
+    }
     final key = '${task.name} ${task.iconName}'.toLowerCase();
     if (key.contains('刷牙') || key.contains('clean')) {
       return const _TaskVisual(

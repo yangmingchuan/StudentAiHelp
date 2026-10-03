@@ -24,13 +24,18 @@ class FakeAuthApi extends AuthApi {
   FakeAuthApi() : super(Dio(), Dio());
   int refreshCount = 0;
   Object? error;
+  Object? signInError;
   Completer<AuthSession>? pending;
   @override
   Future<AuthSession> signIn({
     required String username,
     required String password,
     required String deviceId,
-  }) async => session();
+  }) async {
+    if (signInError != null) throw signInError!;
+    return session();
+  }
+
   @override
   Future<AuthSession> refresh({
     required String refreshToken,
@@ -68,6 +73,39 @@ void main() {
   test('plain debug Run has complete dev config', () {
     expect(AppEnvironment.fromDartDefines().isCloudConfigured, isTrue);
   });
+
+  test(
+    'parent recovery keeps current session on wrong password or network failure',
+    () async {
+      await store.saveSession(session());
+      final scope = container();
+      addTearDown(scope.dispose);
+      await scope.read(authControllerProvider.future);
+      for (final error in [
+        const AuthException('INVALID_USERNAME_OR_PASSWORD', '账号或密码不正确。'),
+        const AuthException('NETWORK_ERROR', '网络连接失败。'),
+      ]) {
+        api.signInError = error;
+        await expectLater(
+          scope.read(authControllerProvider.notifier).reauthenticate('wrong'),
+          throwsA(isA<AuthException>()),
+        );
+        expect(
+          scope.read(authControllerProvider).asData?.value?.subject,
+          'test-subject',
+        );
+        expect((await store.readSession())?.accessToken, 'test-access');
+      }
+      api.signInError = null;
+      await scope
+          .read(authControllerProvider.notifier)
+          .reauthenticate('correct');
+      expect(
+        scope.read(authControllerProvider).asData?.value?.subject,
+        'test-subject',
+      );
+    },
+  );
   test(
     'Supabase invalid_credentials error_code starts legacy migration',
     () async {

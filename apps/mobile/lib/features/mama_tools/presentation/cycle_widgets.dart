@@ -15,10 +15,17 @@ class _CycleDayScope extends InheritedWidget {
 
 /// Shares the home page's artwork, regular typography and rounded surfaces.
 class CycleScene extends StatefulWidget {
-  const CycleScene({required this.child, this.title, this.actions, super.key});
+  const CycleScene({
+    required this.child,
+    this.title,
+    this.actions,
+    this.onBack,
+    super.key,
+  });
   final Widget child;
   final String? title;
   final List<Widget>? actions;
+  final VoidCallback? onBack;
   @override
   State<CycleScene> createState() => _CycleSceneState();
 }
@@ -119,7 +126,7 @@ class _CycleSceneState extends State<CycleScene> with WidgetsBindingObserver {
                       color: const Color(0xEDFFFCF8),
                       child: Row(
                         children: [
-                          const BackButton(),
+                          BackButton(onPressed: widget.onBack),
                           Expanded(
                             child: Text(
                               widget.title!,

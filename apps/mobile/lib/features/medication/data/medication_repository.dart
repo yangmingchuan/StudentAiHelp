@@ -44,6 +44,7 @@ class MedicationRepository {
             .get();
     final logRows =
         await (_db.select(_db.localMedicationLogs)
+              ..where((table) => table.voidedAt.isNull())
               ..orderBy([(table) => OrderingTerm.desc(table.takenAt)])
               ..limit(50))
             .get();
@@ -70,9 +71,7 @@ class MedicationRepository {
       medicines: medicines,
       logs: logs,
       upcomingReminders: upcomingReminders.take(3).toList(),
-      todayLogCount: logs
-          .where((log) => !log.isVoided && _isSameDay(log.takenAt, today))
-          .length,
+      todayLogCount: logs.where((log) => _isSameDay(log.takenAt, today)).length,
       expiringSoonCount: medicines.where((medicine) {
         return medicine.expiryStatus == MedicineExpiryStatus.expiringSoon;
       }).length,
@@ -173,24 +172,31 @@ class MedicationRepository {
     });
   }
 
-  Future<List<int>> voidLog({
-    required int logId,
-    required String reason,
-  }) async {
-    final normalizedReason = reason.trim().isEmpty ? '用户作废' : reason.trim();
-    final changed =
-        await (_db.update(_db.localMedicationLogs)..where(
+  Future<List<int>> deleteLog(int logId) => _db.transaction(() async {
+    final log =
+        await (_db.select(_db.localMedicationLogs)..where(
               (table) => table.id.equals(logId) & table.voidedAt.isNull(),
             ))
-            .write(
-              LocalMedicationLogsCompanion(
-                voidedAt: Value(DateTime.now()),
-                voidReason: Value(normalizedReason),
-              ),
-            );
-    if (changed == 0) throw ArgumentError('这条记录已作废或不存在');
-    return _cancelScheduledRemindersForLog(logId);
-  }
+            .getSingleOrNull();
+    if (log == null) throw ArgumentError('这条记录已删除或不存在');
+
+    final reminders = await (_db.select(
+      _db.localMedicationReminders,
+    )..where((table) => table.sourceLogId.equals(logId))).get();
+    final scheduledIds = reminders
+        .where(
+          (item) => item.status == MedicationReminderStatus.scheduled.value,
+        )
+        .map((item) => item.id)
+        .toList(growable: false);
+    await (_db.delete(
+      _db.localMedicationReminders,
+    )..where((table) => table.sourceLogId.equals(logId))).go();
+    await (_db.delete(
+      _db.localMedicationLogs,
+    )..where((table) => table.id.equals(logId))).go();
+    return scheduledIds;
+  });
 
   Future<void> resolveReminder({
     required int reminderId,

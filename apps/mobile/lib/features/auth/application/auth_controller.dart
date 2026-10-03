@@ -127,6 +127,33 @@ class AuthController extends AsyncNotifier<AuthSession?> {
     }
   }
 
+  /// Verify the current account without navigating away or clearing its local
+  /// session when a password is wrong or the network is unavailable.
+  Future<void> reauthenticate(String password) async {
+    _ensureConfigured();
+    if (_refreshing != null) await _refreshing;
+    final current = state.asData?.value;
+    if (current == null) throw const AuthException('NOT_SIGNED_IN', '请先登录。');
+    final epoch = ++_epoch;
+    final verified = await _api.signIn(
+      username: current.username,
+      password: password,
+      deviceId: await _store.readOrCreateDeviceId(),
+    );
+    if (!ref.mounted ||
+        epoch != _epoch ||
+        verified.subject != current.subject) {
+      throw const AuthException('SESSION_CHANGED', '账号状态已改变，请重新操作。');
+    }
+    await _write(() async {
+      if (ref.mounted && epoch == _epoch) await _store.saveSession(verified);
+    });
+    if (!ref.mounted || epoch != _epoch) {
+      throw const AuthException('SESSION_CHANGED', '账号状态已改变，请重新操作。');
+    }
+    state = AsyncData(verified);
+  }
+
   Future<void> register({
     required String username,
     required String password,

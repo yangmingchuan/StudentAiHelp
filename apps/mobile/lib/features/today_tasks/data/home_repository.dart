@@ -7,6 +7,7 @@ import 'package:little_hero/core/database/local_database.dart';
 import 'package:little_hero/core/sync/operation_id_factory.dart';
 import 'package:little_hero/features/today_tasks/data/home_api.dart';
 import 'package:little_hero/features/today_tasks/domain/home_snapshot.dart';
+import 'package:little_hero/features/todos/domain/task_templates.dart';
 
 final homeRepositoryProvider = Provider<HomeRepository>((ref) {
   return HomeRepository(
@@ -121,7 +122,7 @@ class HomeRepository {
     return _readSnapshot(isStale: false, isSyncing: true);
   }
 
-  Future<HomeSnapshot> addTask({required String name}) async {
+  Future<HomeSnapshot> addTask({required String name, String? iconName}) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) {
       throw ArgumentError('任务名称不能为空');
@@ -144,7 +145,11 @@ class HomeRepository {
               id: Value(id),
               childId: child.id,
               name: trimmed,
-              iconName: const Value('task_alt_rounded'),
+              iconName: Value(
+                iconName ??
+                    templateForTask(trimmed, '')?.iconName ??
+                    'task_alt_rounded',
+              ),
               sortOrder: Value(tasks.isEmpty ? 10 : tasks.last.sortOrder + 10),
               isDirty: const Value(true),
             ),
@@ -153,7 +158,15 @@ class HomeRepository {
         operationId: _operationIdFactory.create(),
         operationType: 'task_create',
         entityId: id.toString(),
-        payload: {'childId': child.id, 'taskId': id, 'name': trimmed},
+        payload: {
+          'childId': child.id,
+          'taskId': id,
+          'name': trimmed,
+          'iconName':
+              iconName ??
+              templateForTask(trimmed, '')?.iconName ??
+              'task_alt_rounded',
+        },
       );
     });
     unawaitedFlush();
@@ -209,6 +222,7 @@ class HomeRepository {
   Future<HomeSnapshot> updateTask({
     required int taskId,
     required String name,
+    String? iconName,
   }) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) {
@@ -223,6 +237,7 @@ class HomeRepository {
     )..where((table) => table.id.equals(taskId))).write(
       LocalHabitsCompanion(
         name: Value(trimmed),
+        iconName: iconName == null ? const Value.absent() : Value(iconName),
         isDirty: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),
@@ -231,7 +246,7 @@ class HomeRepository {
       operationId: _operationIdFactory.create(),
       operationType: 'task_update',
       entityId: taskId.toString(),
-      payload: {'taskId': taskId, 'name': trimmed},
+      payload: {'taskId': taskId, 'name': trimmed, 'iconName': ?iconName},
     );
     unawaitedFlush();
     return _readSnapshot(isStale: false, isSyncing: true);
